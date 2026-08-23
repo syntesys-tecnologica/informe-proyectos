@@ -722,29 +722,42 @@ async function generateReport(){
   const taken = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.dataUrl);
   const skipped = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.skipped);
 
-  // ---------- Una página por foto, título centrado ----------
-  for (let i = 0; i < taken.length; i++){
-    $('genStatus').textContent = `Procesando foto ${i+1} de ${taken.length}`;
+  // ---------- Dos fotos por página (horizontal), cada una con su título centrado ----------
+  const footerReserve = 55;
+  const availTop = margin;
+  const availBottom = pageH - footerReserve;
+  const slotH = (availBottom - availTop) / 2;
+  const slotGap = 18;
+  const imgMaxW = pageW - margin * 2;
+
+  for (let i = 0; i < taken.length; i += 2){
+    $('genStatus').textContent = `Procesando fotos ${i+1}-${Math.min(i+2, taken.length)} de ${taken.length}`;
     await new Promise(r => setTimeout(r, 0));
 
     doc.addPage();
-    doc.setTextColor(20, 20, 20);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    const titleLines = doc.splitTextToSize(taken[i].item.s, pageW - margin * 2);
-    doc.text(titleLines, centerX, margin, { align: 'center' });
+    const pair = [taken[i], taken[i + 1]].filter(Boolean);
 
-    const titleHeight = titleLines.length * 16;
-    const imgTopY = margin + titleHeight + 14;
+    pair.forEach((entry, idx) => {
+      const slotTop = availTop + idx * slotH;
 
-    const props = doc.getImageProperties(taken[i].s.dataUrl);
-    const maxW = pageW - margin*2;
-    const maxH = pageH - imgTopY - margin;
-    let w = maxW, h = (props.height / props.width) * w;
-    if (h > maxH){ h = maxH; w = (props.width / props.height) * h; }
-    const x = centerX - w / 2;
+      doc.setTextColor(20, 20, 20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      const titleLines = doc.splitTextToSize(entry.item.s, imgMaxW);
+      doc.text(titleLines, centerX, slotTop + 12, { align: 'center' });
 
-    doc.addImage(taken[i].s.dataUrl, 'JPEG', x, imgTopY, w, h);
+      const titleBlockH = titleLines.length * 15 + 10;
+      const imgTopY = slotTop + titleBlockH;
+      const imgMaxH = slotH - titleBlockH - slotGap;
+
+      const props = doc.getImageProperties(entry.s.dataUrl);
+      let w = imgMaxW, h = (props.height / props.width) * w;
+      if (h > imgMaxH){ h = imgMaxH; w = (props.width / props.height) * h; }
+      const x = centerX - w / 2;
+      const y = imgTopY + (imgMaxH - h) / 2;
+
+      doc.addImage(entry.s.dataUrl, 'JPEG', x, y, w, h);
+    });
   }
 
   // ---------- Pie de página en todas las hojas (marca + numeración) ----------
