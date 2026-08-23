@@ -112,7 +112,7 @@
     </div>
       <div class="setup-field">
       <label>Código de la tienda</label>
-      <input type="text" id="Código" placeholder="Ej. 3000">
+      <input type="text" id="fCodigo" placeholder="Ej. 3000">
     </div>
     <div class="setup-field">
       <label>Ciudad</label>
@@ -466,6 +466,7 @@ $('fFecha').value = new Date().toISOString().slice(0,10);
 $('btnStart').addEventListener('click', () => {
   visita = {
     tienda: $('fTienda').value.trim() || '(sin nombre)',
+    codigo: $('fCodigo').value.trim() || '(sin código)',
     ciudad: $('fCiudad').value.trim() || '(sin ciudad)',
     tecnico: $('fTecnico').value.trim() || '(sin nombre)',
     fecha: $('fFecha').value || new Date().toISOString().slice(0,10),
@@ -614,8 +615,8 @@ async function generateReport(){
 
   const info = [
     ['Tienda', visita.tienda],
+    ['Código de tienda', visita.codigo],
     ['Ciudad', visita.ciudad],
-    ['Técnico responsable', visita.tecnico],
     ['Fecha', visita.fecha],
   ];
 
