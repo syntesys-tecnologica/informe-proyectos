@@ -592,49 +592,119 @@ async function generateReport(){
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 48;
+  const centerX = pageW / 2;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('Informe técnico', margin, 90);
-  doc.setFontSize(13);
-  doc.text('CCTV IP / Alarma de intrusión / Detección de incendio', margin, 112);
+  // ---------- Portada (centrada vertical y horizontalmente) ----------
+  let logoW = 0, logoH = 0, logoProps = null;
+  const logoEl = document.querySelector('header .logo');
+  if (logoEl && logoEl.src){
+    try {
+      logoProps = doc.getImageProperties(logoEl.src);
+      logoW = 100;
+      logoH = (logoProps.height / logoProps.width) * logoW;
+    } catch (e){ logoProps = null; }
+  }
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
+  doc.setFontSize(12);
+  const subtitleLines = doc.splitTextToSize(
+    'CCTV IP / Alarma de intrusión / Detección de incendio',
+    pageW - margin * 2 - 40
+  );
+
   const info = [
     ['Tienda', visita.tienda],
     ['Ciudad', visita.ciudad],
     ['Técnico responsable', visita.tecnico],
     ['Fecha', visita.fecha],
   ];
-  let y = 160;
+
+  // altura total del bloque, para poder centrarlo verticalmente en la página
+  const totalHeight =
+    (logoProps ? logoH + 34 : 0) +
+    26 +
+    (subtitleLines.length * 16 + 36) +
+    info.length * 42;
+
+  let y = Math.max(70, (pageH - totalHeight) / 2);
+
+  if (logoProps){
+    doc.addImage(logoEl.src, 'PNG', centerX - logoW/2, y, logoW, logoH);
+    y += logoH + 34;
+  }
+
+  doc.setTextColor(20, 20, 20);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(19);
+  doc.text('INFORME TÉCNICO', centerX, y, { align: 'center' });
+  y += 26;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.text(subtitleLines, centerX, y, { align: 'center' });
+  y += subtitleLines.length * 16 + 36;
+
   info.forEach(([label, value]) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(label + ':', margin, y);
     doc.setFont('helvetica', 'normal');
-    doc.text(String(value), margin + 140, y);
-    y += 22;
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 110);
+    doc.text(label.toUpperCase(), centerX, y, { align: 'center' });
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20, 20, 20);
+    doc.text(String(value), centerX, y, { align: 'center' });
+    y += 28;
   });
+
+  // ---------- Carta de presentación (página 2) ----------
+  doc.addPage();
+  const monthsEs = ['enero','febrero','marzo','abril','mayo','junio','julio',
+                     'agosto','septiembre','octubre','noviembre','diciembre'];
+  let fechaTexto = visita.fecha;
+  try {
+    const [fy, fm, fd] = visita.fecha.split('-').map(Number);
+    fechaTexto = `${fd} de ${monthsEs[fm - 1]} de ${fy}`;
+  } catch (e) {}
+
+  let ly = 70;
+  doc.setTextColor(20, 20, 20);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(`Envigado, ${fechaTexto}`, margin, ly);
+  ly += 46;
+
+  doc.text('Señores', margin, ly); ly += 20;
+  doc.setFont('helvetica', 'bold');
+  doc.text('DOLLARCITY', margin, ly); ly += 20;
+  doc.setFont('helvetica', 'normal');
+  doc.text('Aten: Ing. Lady Rodríguez', margin, ly); ly += 20;
+  doc.text('Envigado - Colombia', margin, ly); ly += 40;
+
+  doc.text('Cordial saludo,', margin, ly); ly += 32;
+
+  const bodyText =
+    `Presentamos informe por el suministro e instalación de materiales y equipos ` +
+    `para la puesta en funcionamiento de los sistemas CCTV IP, alarma de intrusión ` +
+    `y alarma detección de incendio en la sede Dollarcity ${visita.tienda} en ` +
+    `${visita.ciudad}, Colombia.`;
+  const bodyLines = doc.splitTextToSize(bodyText, pageW - margin * 2);
+  doc.text(bodyLines, margin, ly, { maxWidth: pageW - margin * 2, align: 'justify', lineHeightFactor: 1.5 });
 
   const taken = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.dataUrl);
   const skipped = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.skipped);
 
-  y += 20;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.text(`Fotos incluidas: ${taken.length} de ${CHECKLIST.length}`, margin, y);
-  y += 18;
-  doc.text(`Casillas marcadas como no aplicables: ${skipped.length}`, margin, y);
-
+  // ---------- Una página por foto, título centrado ----------
   for (let i = 0; i < taken.length; i++){
     $('genStatus').textContent = `Procesando foto ${i+1} de ${taken.length}`;
     await new Promise(r => setTimeout(r, 0));
 
     doc.addPage();
+    doc.setTextColor(20, 20, 20);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    const titleLines = doc.splitTextToSize(taken[i].item.s, pageW - margin*2);
-    doc.text(titleLines, margin, margin);
+    const titleLines = doc.splitTextToSize(taken[i].item.s, pageW - margin * 2);
+    doc.text(titleLines, centerX, margin, { align: 'center' });
 
     const titleHeight = titleLines.length * 16;
     const imgTopY = margin + titleHeight + 14;
@@ -644,7 +714,7 @@ async function generateReport(){
     const maxH = pageH - imgTopY - margin;
     let w = maxW, h = (props.height / props.width) * w;
     if (h > maxH){ h = maxH; w = (props.width / props.height) * h; }
-    const x = margin + (maxW - w) / 2;
+    const x = centerX - w / 2;
 
     doc.addImage(taken[i].s.dataUrl, 'JPEG', x, imgTopY, w, h);
   }
