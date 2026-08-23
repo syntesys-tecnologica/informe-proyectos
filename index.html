@@ -720,6 +720,17 @@ async function generateReport(){
     doc.addImage(taken[i].s.dataUrl, 'JPEG', x, imgTopY, w, h);
   }
 
+  // ---------- Pie de página en todas las hojas (marca + numeración) ----------
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++){
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text('www.syntesys.co', centerX, pageH - 30, { align: 'center' });
+    doc.text(String(p), pageW - margin, pageH - 30, { align: 'right' });
+  }
+
   generatedPdfBlob = doc;
   $('doneSummary').textContent =
     `${visita.tienda} — ${taken.length} fotos incluidas` +
