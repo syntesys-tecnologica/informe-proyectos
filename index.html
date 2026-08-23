@@ -108,11 +108,11 @@
     <p class="section-name" style="font-size:18px">Datos de la visita</p>
     <div class="setup-field">
       <label>Nombre de la tienda</label>
-      <input type="text" id="fTienda" placeholder="Ej. Baranoa">
+      <input type="text" id="fTienda" placeholder="Ej. Benedictinos">
     </div>
     <div class="setup-field">
       <label>Ciudad</label>
-      <input type="text" id="fCiudad" placeholder="Ej. Baranoa, Atlántico">
+      <input type="text" id="fCiudad" placeholder="Ej. Envigado, Antioquia">
     </div>
     <div class="setup-field">
       <label>Técnico responsable</label>
@@ -122,7 +122,7 @@
       <label>Fecha</label>
       <input type="date" id="fFecha">
     </div>
-    <button class="btn btn-primary" id="btnStart">Empezar a tomar fotos</button>
+    <button class="btn btn-primary" id="btnStart">Iniciar el registro fotográfico</button>
   </div>
 
   <!-- ============ PANTALLA 1: CAPTURA ============ -->
@@ -199,11 +199,11 @@ const CHECKLIST = [
   { "s": "CONFIGURACIÓN DE NVR – HORA Y REGIÓN", "t": "CONFIGURACION_DE_NVR_HORA_Y_REGION" },
   { "s": "CONFIGURACIÓN DE NVR – CONFIGURACIÓN DE NTP", "t": "CONFIGURACION_DE_NVR_CONFIGURACION_DE_NTP" },
   { "s": "CONFIGURACIÓN DE NVR – DESACTIVAR ACTUALIZACIÓN DE FIRMWARE", "t": "CONFIGURACION_DE_NVR_DESACTIVAR_ACTUALIZACION_DE_F" },
-  { "s": "CONFIGURACIÓN DE NVR – CONFIGURACIÓN DE PUERTOS", "t": "CONFIGURACION_DE_NVR_CONFIGURACION_DE_PUERTOS" },
+  { "s": "CONFIGURACIÓN DE PUERTOS", "t": "CONFIGURACION_DE_PUERTOS" },
   { "s": "CONFIGURACIÓN DE NVR – NOMBRES CÁMARAS/DIR IP", "t": "CONFIGURACION_DE_NVR_NOMBRES_CAMARAS_DIR_IP" },
-  { "s": "CONFIGURACIÓN DE NVR – NOMBRES CÁMARAS/DIR IP (2)", "t": "CONFIGURACION_DE_NVR_NOMBRES_CAMARAS_DIR_IP_2" },
-  { "s": "CONFIGURACIÓN DE NVR – PARAMETROS DE STREAM PPAL CÁMARAS", "t": "CONFIGURACION_DE_NVR_PARAMETROS_DE_STREAM_PPAL_CAM" },
-  { "s": "CONFIGURACIÓN DE NVR – PARAMETROS DE SUB-STREAM CÁMARAS", "t": "CONFIGURACION_DE_NVR_PARAMETROS_DE_SUB_STREAM_CAMA" },
+  { "s": "NOMBRES CÁMARAS/DIR IP (2)", "t": "NOMBRES_CAMARAS_DIR_IP_2" },
+  { "s": "PARAMETROS DE STREAM PPAL CÁMARAS", "t": "PARAMETROS_DE_STREAM_PPAL_CAM" },
+  { "s": "PARAMETROS DE SUB-STREAM CÁMARAS", "t": "PARAMETROS_DE_SUB_STREAM_CAM" },
   { "s": "PARAMETRO DE CONFIGURACIÓN", "t": "PARAMETRO_DE_CONFIGURACION" },
   { "s": "PARAMETRO DE CONFIGURACIÓN (2)", "t": "PARAMETRO_DE_CONFIGURACION_2" },
   { "s": "CONFIGURACIÓN AVANZADA DE AUDIO", "t": "CONFIGURACION_AVANZADA_DE_AUDIO" },
@@ -237,8 +237,6 @@ const CHECKLIST = [
   { "s": "CALENDARIO GRABACIÓN C28", "t": "C28" },
   { "s": "CALENDARIO GRABACIÓN C29", "t": "C29" },
   { "s": "CALENDARIO GRABACIÓN C30", "t": "C30" },
-  { "s": "CONFIGURACIÓN DE NVR – VISUAL DE TODAS LAS CÁMARAS", "t": "CONFIGURACION_DE_NVR_VISUAL_DE_TODAS_LAS_CAMARAS" },
-  { "s": "CONFIGURACIÓN DE NVR – VALIDACIÓN DE GRABACIÓN", "t": "CONFIGURACION_DE_NVR_VALIDACION_DE_GRABACION" },
   { "s": "CÁMARA 1", "t": "CAMARA_1_VISTA" },
   { "s": "CÁMARA 2", "t": "CAMARA_2_VISTA" },
   { "s": "CÁMARA 3", "t": "CAMARA_3_VISTA" },
@@ -299,8 +297,8 @@ const CHECKLIST = [
   { "s": "ENFOQUE CÁMARA 28", "t": "CAMARA_28_ENFOQUE" },
   { "s": "ENFOQUE CÁMARA 29", "t": "CAMARA_29_ENFOQUE" },
   { "s": "ENFOQUE CÁMARA 30", "t": "CAMARA_30_ENFOQUE" },
-  { "s": "CONFIGURACIÓN DE NVR – VISUAL DE TODAS LAS CÁMARAS (2)", "t": "CONFIGURACION_DE_NVR_VISUAL_DE_TODAS_LAS_CAMARAS_2" },
-  { "s": "CONFIGURACIÓN DE NVR – VALIDACIÓN DE GRABACIÓN (2)", "t": "CONFIGURACION_DE_NVR_VALIDACION_DE_GRABACION_2" },
+  { "s": "VISUAL DE TODAS LAS CÁMARAS (2)", "t": "VISUAL_DE_TODAS_LAS_CAMARAS_2" },
+  { "s": "VALIDACIÓN DE GRABACIÓN (2)", "t": "VALIDACION_DE_GRABACION_2" },
   { "s": "ANÁLISIS DINÁMICO CÁMARA 1", "t": "CAMARA_1" },
   { "s": "ANÁLISIS DINÁMICO CÁMARA 2", "t": "CAMARA_2" },
   { "s": "ANÁLISIS DINÁMICO CÁMARA 3", "t": "CAMARA_3" },
