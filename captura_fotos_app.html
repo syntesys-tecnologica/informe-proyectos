@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Captura de fotos — Informe técnico</title>
+<style>
+  :root{
+    --ink:#1c1c1a; --ink-soft:#6b6a64; --paper:#faf9f6; --card:#ffffff;
+    --line:#e4e2da; --accent:#1d5c4a; --accent-ink:#eef6f2; --accent-strong:#12392e;
+    --warn:#a3491f; --warn-bg:#fbeee5; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper); color:var(--ink); min-height:100vh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:16px 16px 32px}
+  header{padding:18px 4px 10px}
+  header h1{font-size:17px;margin:0 0 2px;font-weight:600}
+  header p{margin:0;font-size:13px;color:var(--ink-soft)}
+
+  .progress-row{display:flex;align-items:center;gap:10px;margin:14px 0 18px}
+  .progress-track{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+  .progress-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .25s ease}
+  .progress-label{font-size:12px;color:var(--ink-soft);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+
+  .setup-field{margin-bottom:14px}
+  .setup-field label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px}
+  .setup-field input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:var(--paper);color:var(--ink)}
+
+  .section-eyebrow{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+  .section-name{font-size:21px;font-weight:600;line-height:1.3;margin:0 0 18px}
+
+  .photo-frame{
+    aspect-ratio:4/3;border-radius:10px;background:var(--paper);border:1px dashed var(--line);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px;position:relative;
+  }
+  .photo-frame img{width:100%;height:100%;object-fit:cover;display:block}
+  .photo-frame .empty-hint{color:var(--ink-soft);font-size:13px;text-align:center;padding:0 20px}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:15px 16px;border-radius:11px;border:1px solid transparent;
+    font-size:15px;font-weight:600;cursor:pointer;text-align:center;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:active{background:var(--accent-strong)}
+  .btn-secondary{background:var(--card);color:var(--ink);border-color:var(--line)}
+  .btn-secondary:active{background:var(--paper)}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:none;font-weight:500;padding:12px}
+  .btn-row{display:flex;gap:10px;margin-top:10px}
+  .btn-row .btn{flex:1}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  input[type=file]{display:none}
+
+  .nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+  .nav-row button{background:none;border:none;color:var(--ink-soft);font-size:14px;padding:10px 4px;cursor:pointer}
+  .nav-row button:disabled{opacity:.3}
+
+  .list-item{
+    display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .list-item:last-child{border-bottom:none}
+  .status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--line)}
+  .status-dot.done{background:var(--accent)}
+  .status-dot.skip{background:#c8a24a}
+  .list-item .li-text{flex:1;font-size:14px}
+  .list-item .li-num{font-size:12px;color:var(--ink-soft);width:28px;flex-shrink:0}
+
+  .banner{background:var(--accent-ink);color:var(--accent-strong);border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:14px}
+  .banner.warn{background:var(--warn-bg);color:var(--warn)}
+
+  .tabbar{display:flex;gap:8px;margin-bottom:16px}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--card);border:1px solid var(--line);cursor:pointer}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .hidden{display:none !important}
+
+  #summaryBox{font-size:13px;color:var(--ink-soft);text-align:center;margin:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Captura de fotos del informe</h1>
+    <p>Toma cada foto en orden. Al final se arma el informe solo.</p>
+  </header>
+
+  <!-- ============ PANTALLA 0: DATOS DE LA VISITA ============ -->
+  <div id="screen-setup" class="card">
+    <p class="section-eyebrow">Antes de empezar</p>
+    <p class="section-name" style="font-size:18px">Datos de la visita</p>
+    <div class="setup-field">
+      <label>Nombre de la tienda</label>
+      <input type="text" id="fTienda" placeholder="Ej. Baranoa">
+    </div>
+    <div class="setup-field">
+      <label>Ciudad</label>
+      <input type="text" id="fCiudad" placeholder="Ej. Baranoa, Atlántico">
+    </div>
+    <div class="setup-field">
+      <label>Técnico responsable</label>
+      <input type="text" id="fTecnico" placeholder="Tu nombre">
+    </div>
+    <div class="setup-field">
+      <label>Fecha</label>
+      <input type="date" id="fFecha">
+    </div>
+    <button class="btn btn-primary" id="btnStart">Empezar a tomar fotos</button>
+  </div>
+
+  <!-- ============ PANTALLA 1: CAPTURA ============ -->
+  <div id="screen-capture" class="hidden">
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 0</div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab active" id="tabCapture">Capturar</div>
+      <div class="tab" id="tabList">Ver lista</div>
+    </div>
+
+    <div id="captureView">
+      <div class="card">
+        <p class="section-eyebrow" id="itemCounter">Casilla 1 de 266</p>
+        <p class="section-name" id="itemName">—</p>
+
+        <div class="photo-frame" id="photoFrame">
+          <p class="empty-hint">Aún no has tomado esta foto</p>
+        </div>
+
+        <label class="btn btn-primary" id="btnTakePhoto">
+          <span>Tomar foto</span>
+          <input type="file" accept="image/*" capture="environment" id="fileInput">
+        </label>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btnRetake" disabled>Repetir foto</button>
+          <button class="btn btn-secondary" id="btnSkip">Saltar casilla</button>
+        </div>
+
+        <div class="nav-row">
+          <button id="btnPrev">← Anterior</button>
+          <button id="btnNext">Siguiente →</button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" id="btnFinishEarly">Terminar y generar informe ahora</button>
+    </div>
+
+    <div id="listView" class="hidden">
+      <div class="card" style="padding:6px 14px;max-height:60vh;overflow-y:auto" id="listContainer"></div>
+      <button class="btn btn-primary" id="btnGenerateFromList">Generar informe</button>
+    </div>
+  </div>
+
+  <!-- ============ PANTALLA 2: GENERANDO ============ -->
+  <div id="screen-generating" class="hidden card" style="text-align:center">
+    <p class="section-name" style="font-size:17px">Generando el informe…</p>
+    <p id="genStatus" style="color:var(--ink-soft);font-size:13px">Procesando fotos</p>
+  </div>
+
+  <!-- ============ PANTALLA 3: LISTO ============ -->
+  <div id="screen-done" class="hidden card" style="text-align:center">
+    <p class="section-name" style="font-size:18px">Informe generado</p>
+    <p id="doneSummary" style="color:var(--ink-soft);font-size:14px;margin-bottom:18px"></p>
+    <button class="btn btn-primary" id="btnShare">Compartir informe</button>
+    <button class="btn btn-secondary" id="btnDownload" style="margin-top:10px">Descargar informe (PDF)</button>
+    <button class="btn btn-ghost" id="btnBackToList" style="margin-top:6px">Volver a revisar fotos</button>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const CHECKLIST = [{"s": "RACK SISTEMA CCTV IP", "t": "RACK_SISTEMA_CCTV_IP"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS CCTV TIENDA", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_CCTV_TIENDA"}, {"s": "CONFIGURACIÓN DE NVR - FIRMWARE", "t": "CONFIGURACION_DE_NVR_FIRMWARE"}, {"s": "CONFIGURACIÓN DE NVR - RESOLUCIÓN", "t": "CONFIGURACION_DE_NVR_RESOLUCION"}, {"s": "CONFIGURACIÓN DE NVR – RED LAN 1", "t": "CONFIGURACION_DE_NVR_RED_LAN_1"}, {"s": "CONFIGURACIÓN DE NVR – USUARIOS", "t": "CONFIGURACION_DE_NVR_USUARIOS"}, {"s": "CONFIGURACIÓN DE NVR – HORA Y REGIÓN", "t": "CONFIGURACION_DE_NVR_HORA_Y_REGION"}, {"s": "CONFIGURACIÓN DE NVR – CONFIGURACIÓN DE NTP", "t": "CONFIGURACION_DE_NVR_CONFIGURACION_DE_NTP"}, {"s": "CONFIGURACIÓN DE NVR – DESACTIVAR ACTUALIZACIÓN DE FIRMWARE", "t": "CONFIGURACION_DE_NVR_DESACTIVAR_ACTUALIZACION_DE_F"}, {"s": "CONFIGURACIÓN DE NVR – CONFIGURACIÓN DE PUERTOS", "t": "CONFIGURACION_DE_NVR_CONFIGURACION_DE_PUERTOS"}, {"s": "CONFIGURACIÓN DE NVR – NOMBRES CÁMARAS/DIR IP", "t": "CONFIGURACION_DE_NVR_NOMBRES_CAMARAS_DIR_IP"}, {"s": "CONFIGURACIÓN DE NVR – NOMBRES CÁMARAS/DIR IP (2)", "t": "CONFIGURACION_DE_NVR_NOMBRES_CAMARAS_DIR_IP_2"}, {"s": "CONFIGURACIÓN DE NVR – PARAMETROS DE STREAM PPAL CÁMARAS", "t": "CONFIGURACION_DE_NVR_PARAMETROS_DE_STREAM_PPAL_CAM"}, {"s": "CONFIGURACIÓN DE NVR – PARAMETROS DE SUB-STREAM CÁMARAS", "t": "CONFIGURACION_DE_NVR_PARAMETROS_DE_SUB_STREAM_CAMA"}, {"s": "PARAMETRO DE CONFIGURACIÓN", "t": "PARAMETRO_DE_CONFIGURACION"}, {"s": "PARAMETRO DE CONFIGURACIÓN (2)", "t": "PARAMETRO_DE_CONFIGURACION_2"}, {"s": "CONFIGURACIÓN AVANZADA DE AUDIO", "t": "CONFIGURACION_AVANZADA_DE_AUDIO"}, {"s": "C1", "t": "C1"}, {"s": "C2", "t": "C2"}, {"s": "C3", "t": "C3"}, {"s": "C4", "t": "C4"}, {"s": "C5", "t": "C5"}, {"s": "C6", "t": "C6"}, {"s": "C7", "t": "C7"}, {"s": "C8", "t": "C8"}, {"s": "C9", "t": "C9"}, {"s": "C10", "t": "C10"}, {"s": "C11", "t": "C11"}, {"s": "C12", "t": "C12"}, {"s": "C13", "t": "C13"}, {"s": "C14", "t": "C14"}, {"s": "C15", "t": "C15"}, {"s": "C16", "t": "C16"}, {"s": "C17", "t": "C17"}, {"s": "C18", "t": "C18"}, {"s": "C19", "t": "C19"}, {"s": "C20", "t": "C20"}, {"s": "C21", "t": "C21"}, {"s": "C22", "t": "C22"}, {"s": "C23", "t": "C23"}, {"s": "C24", "t": "C24"}, {"s": "C25", "t": "C25"}, {"s": "C26", "t": "C26"}, {"s": "C27", "t": "C27"}, {"s": "C28", "t": "C28"}, {"s": "C29", "t": "C29"}, {"s": "C30", "t": "C30"}, {"s": "CONFIGURACIÓN DE NVR – VISUAL DE TODAS LAS CÁMARAS", "t": "CONFIGURACION_DE_NVR_VISUAL_DE_TODAS_LAS_CAMARAS"}, {"s": "CONFIGURACIÓN DE NVR – VALIDACIÓN DE GRABACIÓN", "t": "CONFIGURACION_DE_NVR_VALIDACION_DE_GRABACION"}, {"s": "CÁMARA 1 ENFOQUE", "t": "CAMARA_1_ENFOQUE"}, {"s": "CÁMARA 1 ENFOQUE extra 1", "t": "CAMARA_1_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 2 ENFOQUE", "t": "CAMARA_2_ENFOQUE"}, {"s": "CÁMARA 2 ENFOQUE extra 1", "t": "CAMARA_2_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 3 ENFOQUE", "t": "CAMARA_3_ENFOQUE"}, {"s": "CÁMARA 3 ENFOQUE extra 1", "t": "CAMARA_3_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 4 ENFOQUE", "t": "CAMARA_4_ENFOQUE"}, {"s": "CÁMARA 4 ENFOQUE extra 1", "t": "CAMARA_4_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 5 ENFOQUE", "t": "CAMARA_5_ENFOQUE"}, {"s": "CÁMARA 5 ENFOQUE extra 1", "t": "CAMARA_5_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 6 ENFOQUE", "t": "CAMARA_6_ENFOQUE"}, {"s": "CÁMARA 6 ENFOQUE extra 1", "t": "CAMARA_6_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 7 ENFOQUE", "t": "CAMARA_7_ENFOQUE"}, {"s": "CÁMARA 7 ENFOQUE extra 1", "t": "CAMARA_7_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 8 ENFOQUE", "t": "CAMARA_8_ENFOQUE"}, {"s": "CÁMARA 8 ENFOQUE extra 1", "t": "CAMARA_8_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 9 ENFOQUE", "t": "CAMARA_9_ENFOQUE"}, {"s": "CÁMARA 9 ENFOQUE extra 1", "t": "CAMARA_9_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 10 ENFOQUE", "t": "CAMARA_10_ENFOQUE"}, {"s": "CÁMARA 10 ENFOQUE extra 1", "t": "CAMARA_10_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 11 ENFOQUE", "t": "CAMARA_11_ENFOQUE"}, {"s": "CÁMARA 11 ENFOQUE extra 1", "t": "CAMARA_11_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 12 ENFOQUE", "t": "CAMARA_12_ENFOQUE"}, {"s": "CÁMARA 12 ENFOQUE extra 1", "t": "CAMARA_12_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 13 ENFOQUE", "t": "CAMARA_13_ENFOQUE"}, {"s": "CÁMARA 13 ENFOQUE extra 1", "t": "CAMARA_13_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 14 ENFOQUE", "t": "CAMARA_14_ENFOQUE"}, {"s": "CÁMARA 14 ENFOQUE extra 1", "t": "CAMARA_14_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 15 ENFOQUE", "t": "CAMARA_15_ENFOQUE"}, {"s": "CÁMARA 15 ENFOQUE extra 1", "t": "CAMARA_15_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 16 ENFOQUE", "t": "CAMARA_16_ENFOQUE"}, {"s": "CÁMARA 16 ENFOQUE extra 1", "t": "CAMARA_16_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 17 ENFOQUE", "t": "CAMARA_17_ENFOQUE"}, {"s": "CÁMARA 17 ENFOQUE extra 1", "t": "CAMARA_17_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 18 ENFOQUE", "t": "CAMARA_18_ENFOQUE"}, {"s": "CÁMARA 18 ENFOQUE extra 1", "t": "CAMARA_18_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 19 ENFOQUE", "t": "CAMARA_19_ENFOQUE"}, {"s": "CÁMARA 19 ENFOQUE extra 1", "t": "CAMARA_19_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 20 ENFOQUE", "t": "CAMARA_20_ENFOQUE"}, {"s": "CÁMARA 20 ENFOQUE extra 1", "t": "CAMARA_20_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 21 ENFOQUE", "t": "CAMARA_21_ENFOQUE"}, {"s": "CÁMARA 21 ENFOQUE extra 1", "t": "CAMARA_21_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 22 ENFOQUE", "t": "CAMARA_22_ENFOQUE"}, {"s": "CÁMARA 22 ENFOQUE extra 1", "t": "CAMARA_22_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 23 ENFOQUE", "t": "CAMARA_23_ENFOQUE"}, {"s": "CÁMARA 23 ENFOQUE extra 1", "t": "CAMARA_23_ENFOQUE_EXTRA_1"}, {"s": "CÁMARA 24 ENFOQUE", "t": "CAMARA_24_ENFOQUE"}, {"s": "CÁMARA 24 ENFOQUE extra 1", "t": "CAMARA_24_ENFOQUE_EXTRA_1"}, {"s": "C1 (2)", "t": "C1_2"}, {"s": "C2 (2)", "t": "C2_2"}, {"s": "C3 (2)", "t": "C3_2"}, {"s": "C4 (2)", "t": "C4_2"}, {"s": "C5 (2)", "t": "C5_2"}, {"s": "C6 (2)", "t": "C6_2"}, {"s": "C7 (2)", "t": "C7_2"}, {"s": "C8 (2)", "t": "C8_2"}, {"s": "C9 (2)", "t": "C9_2"}, {"s": "C10 (2)", "t": "C10_2"}, {"s": "C11 (2)", "t": "C11_2"}, {"s": "C12 (2)", "t": "C12_2"}, {"s": "C13 (2)", "t": "C13_2"}, {"s": "C14 (2)", "t": "C14_2"}, {"s": "C15 (2)", "t": "C15_2"}, {"s": "C16 (2)", "t": "C16_2"}, {"s": "C17 (2)", "t": "C17_2"}, {"s": "C18 (2)", "t": "C18_2"}, {"s": "C19 (2)", "t": "C19_2"}, {"s": "C20 (2)", "t": "C20_2"}, {"s": "C21 (2)", "t": "C21_2"}, {"s": "C22 (2)", "t": "C22_2"}, {"s": "C23 (2)", "t": "C23_2"}, {"s": "C24 (2)", "t": "C24_2"}, {"s": "C25 (2)", "t": "C25_2"}, {"s": "C26 (2)", "t": "C26_2"}, {"s": "C27 (2)", "t": "C27_2"}, {"s": "C28 (2)", "t": "C28_2"}, {"s": "C29 (2)", "t": "C29_2"}, {"s": "C30 (2)", "t": "C30_2"}, {"s": "CONFIGURACIÓN DE NVR – VISUAL DE TODAS LAS CÁMARAS (2)", "t": "CONFIGURACION_DE_NVR_VISUAL_DE_TODAS_LAS_CAMARAS_2"}, {"s": "CONFIGURACIÓN DE NVR – VALIDACIÓN DE GRABACIÓN (2)", "t": "CONFIGURACION_DE_NVR_VALIDACION_DE_GRABACION_2"}, {"s": "CÁMARA 1", "t": "CAMARA_1"}, {"s": "CÁMARA 2", "t": "CAMARA_2"}, {"s": "CÁMARA 3", "t": "CAMARA_3"}, {"s": "CÁMARA 4", "t": "CAMARA_4"}, {"s": "CÁMARA 5", "t": "CAMARA_5"}, {"s": "CÁMARA 6", "t": "CAMARA_6"}, {"s": "CÁMARA 7", "t": "CAMARA_7"}, {"s": "CÁMARA 8", "t": "CAMARA_8"}, {"s": "CÁMARA 9", "t": "CAMARA_9"}, {"s": "CÁMARA 10", "t": "CAMARA_10"}, {"s": "CÁMARA 11", "t": "CAMARA_11"}, {"s": "CÁMARA 12", "t": "CAMARA_12"}, {"s": "CÁMARA 13", "t": "CAMARA_13"}, {"s": "CÁMARA 14", "t": "CAMARA_14"}, {"s": "CÁMARA 15", "t": "CAMARA_15"}, {"s": "CÁMARA 16", "t": "CAMARA_16"}, {"s": "CÁMARA 17", "t": "CAMARA_17"}, {"s": "CÁMARA 18", "t": "CAMARA_18"}, {"s": "CÁMARA 19", "t": "CAMARA_19"}, {"s": "CÁMARA 20", "t": "CAMARA_20"}, {"s": "CÁMARA 21", "t": "CAMARA_21"}, {"s": "CÁMARA 22", "t": "CAMARA_22"}, {"s": "CÁMARA 23", "t": "CAMARA_23"}, {"s": "CÁMARA 24", "t": "CAMARA_24"}, {"s": "CÁMARA 25", "t": "CAMARA_25"}, {"s": "CÁMARA 26", "t": "CAMARA_26"}, {"s": "CÁMARA 27", "t": "CAMARA_27"}, {"s": "CÁMARA 28", "t": "CAMARA_28"}, {"s": "CÁMARA 29", "t": "CAMARA_29"}, {"s": "CÁMARA 30", "t": "CAMARA_30"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA ALARMA DE INTRUSIÓN TIENDA", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_ALARM"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA ALARMA DE INTRUSIÓN BODEGA", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_ALARM"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA ALARMA DE INTRUSIÓN PARQUEADERO", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_ALARM"}, {"s": "TECLADO SISTEMA ALARMA DE INTRUSIÓN", "t": "TECLADO_SISTEMA_ALARMA_DE_INTRUSION"}, {"s": "ZONIFICACIÓN SISTEMA ALARMA DE NTRUSIÓN", "t": "ZONIFICACION_SISTEMA_ALARMA_DE_NTRUSION"}, {"s": "UBICACIÓN GABINETES SISTEMA ALARMA DE INTRUSIÓN", "t": "UBICACION_GABINETES_SISTEMA_ALARMA_DE_INTRUSION"}, {"s": "GABINETES DE SISTEMA ALARMA DE INTRUSIÓN", "t": "GABINETES_DE_SISTEMA_ALARMA_DE_INTRUSION"}, {"s": "GABINETES DE SISTEMA ALARMA DE INTRUSIÓN extra 1", "t": "GABINETES_DE_SISTEMA_ALARMA_DE_INTRUSION_EXTRA_1"}, {"s": "ZONA 1", "t": "ZONA_1"}, {"s": "ZONA 2", "t": "ZONA_2"}, {"s": "ZONA 3", "t": "ZONA_3"}, {"s": "ZONA 4", "t": "ZONA_4"}, {"s": "ZONA 5", "t": "ZONA_5"}, {"s": "ZONA 6", "t": "ZONA_6"}, {"s": "ZONA 7", "t": "ZONA_7"}, {"s": "ZONA 8", "t": "ZONA_8"}, {"s": "ZONA 9", "t": "ZONA_9"}, {"s": "ZONA 10", "t": "ZONA_10"}, {"s": "ZONA 11", "t": "ZONA_11"}, {"s": "ZONA 12", "t": "ZONA_12"}, {"s": "ZONA 13", "t": "ZONA_13"}, {"s": "ZONA 14", "t": "ZONA_14"}, {"s": "ZONA 15", "t": "ZONA_15"}, {"s": "ZONA 16", "t": "ZONA_16"}, {"s": "ZONA 17", "t": "ZONA_17"}, {"s": "ZONA 18", "t": "ZONA_18"}, {"s": "ZONA 19", "t": "ZONA_19"}, {"s": "ZONA 20", "t": "ZONA_20"}, {"s": "ZONA 21", "t": "ZONA_21"}, {"s": "ZONA 22", "t": "ZONA_22"}, {"s": "ZONA 23", "t": "ZONA_23"}, {"s": "ZONA 24", "t": "ZONA_24"}, {"s": "ZONA 25", "t": "ZONA_25"}, {"s": "ZONA 26", "t": "ZONA_26"}, {"s": "ZONA 27", "t": "ZONA_27"}, {"s": "ZONA 28", "t": "ZONA_28"}, {"s": "ZONA 29", "t": "ZONA_29"}, {"s": "ZONA 30", "t": "ZONA_30"}, {"s": "ZONA 31", "t": "ZONA_31"}, {"s": "ZONA 32", "t": "ZONA_32"}, {"s": "ZONA 33", "t": "ZONA_33"}, {"s": "ZONA 34", "t": "ZONA_34"}, {"s": "ZONA 35", "t": "ZONA_35"}, {"s": "ZONA 36", "t": "ZONA_36"}, {"s": "ZONA 37", "t": "ZONA_37"}, {"s": "ZONA 38", "t": "ZONA_38"}, {"s": "ZONA 39", "t": "ZONA_39"}, {"s": "ZONA 40", "t": "ZONA_40"}, {"s": "ZONA 41", "t": "ZONA_41"}, {"s": "ZONA 42", "t": "ZONA_42"}, {"s": "ZONA 43", "t": "ZONA_43"}, {"s": "ZONA 44", "t": "ZONA_44"}, {"s": "ZONA 45", "t": "ZONA_45"}, {"s": "ZONA 46", "t": "ZONA_46"}, {"s": "ZONA 47", "t": "ZONA_47"}, {"s": "ZONA 48", "t": "ZONA_48"}, {"s": "ZONA 49", "t": "ZONA_49"}, {"s": "ZONA 50", "t": "ZONA_50"}, {"s": "ZONA 51", "t": "ZONA_51"}, {"s": "ZONA 52", "t": "ZONA_52"}, {"s": "ZONA 53", "t": "ZONA_53"}, {"s": "ZONA 54", "t": "ZONA_54"}, {"s": "ZONA 55", "t": "ZONA_55"}, {"s": "ZONA 56", "t": "ZONA_56"}, {"s": "ZONA 57", "t": "ZONA_57"}, {"s": "ZONA 58", "t": "ZONA_58"}, {"s": "ZONA 59", "t": "ZONA_59"}, {"s": "ZONA 60", "t": "ZONA_60"}, {"s": "ZONA 61", "t": "ZONA_61"}, {"s": "ZONA 62", "t": "ZONA_62"}, {"s": "ZONA 64", "t": "ZONA_64"}, {"s": "ZONA 64 (2)", "t": "ZONA_64_2"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA DETECCIÓN DE INCENDIO TIENDA", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_DETEC"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA DETECCIÓN DE INCENDIO BODEGA", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_DETEC"}, {"s": "PLANO FINAL CON UBICACIÓN DE EQUIPOS SISTEMA DETECCIÓN DE INCENDIO PARQUEADERO", "t": "PLANO_FINAL_CON_UBICACION_DE_EQUIPOS_SISTEMA_DETEC"}, {"s": "ZONIFICACIÓN SISTEMA DETECCIÓN DE INCENDIO", "t": "ZONIFICACION_SISTEMA_DETECCION_DE_INCENDIO"}, {"s": "DETECTOR HUMO 1", "t": "DETECTOR_HUMO_1"}, {"s": "DETECTOR HUMO 2", "t": "DETECTOR_HUMO_2"}, {"s": "DETECTOR HUMO 3", "t": "DETECTOR_HUMO_3"}, {"s": "DETECTOR HUMO 4", "t": "DETECTOR_HUMO_4"}, {"s": "DETECTOR HUMO 5", "t": "DETECTOR_HUMO_5"}, {"s": "DETECTOR HUMO 6", "t": "DETECTOR_HUMO_6"}, {"s": "DETECTOR HUMO 7", "t": "DETECTOR_HUMO_7"}, {"s": "DETECTOR HUMO 8", "t": "DETECTOR_HUMO_8"}, {"s": "DETECTOR HUMO 9", "t": "DETECTOR_HUMO_9"}, {"s": "DETECTOR HUMO 10", "t": "DETECTOR_HUMO_10"}, {"s": "DETECTOR HUMO 11", "t": "DETECTOR_HUMO_11"}, {"s": "DETECTOR HUMO 12", "t": "DETECTOR_HUMO_12"}, {"s": "DETECTOR HUMO 13", "t": "DETECTOR_HUMO_13"}, {"s": "DETECTOR HUMO 14", "t": "DETECTOR_HUMO_14"}, {"s": "DETECTOR HUMO 15", "t": "DETECTOR_HUMO_15"}, {"s": "DETECTOR HUMO 16", "t": "DETECTOR_HUMO_16"}, {"s": "DETECTOR HUMO 17", "t": "DETECTOR_HUMO_17"}, {"s": "DETECTOR HUMO 18", "t": "DETECTOR_HUMO_18"}, {"s": "DETECTOR HUMO 19", "t": "DETECTOR_HUMO_19"}, {"s": "DETECTOR HUMO 20", "t": "DETECTOR_HUMO_20"}, {"s": "DETECTOR HUMO 21", "t": "DETECTOR_HUMO_21"}, {"s": "DETECTOR HUMO 22", "t": "DETECTOR_HUMO_22"}, {"s": "DETECTOR HUMO 23", "t": "DETECTOR_HUMO_23"}, {"s": "DETECTOR HUMO 24", "t": "DETECTOR_HUMO_24"}, {"s": "DETECTOR HUMO 25", "t": "DETECTOR_HUMO_25"}, {"s": "DETECTOR HUMO 26", "t": "DETECTOR_HUMO_26"}, {"s": "DETECTOR HUMO 27", "t": "DETECTOR_HUMO_27"}, {"s": "DETECTOR HUMO 28", "t": "DETECTOR_HUMO_28"}, {"s": "DETECTOR HUMO 29", "t": "DETECTOR_HUMO_29"}, {"s": "DETECTOR HUMO 30", "t": "DETECTOR_HUMO_30"}, {"s": "ACTA DE ENTREGA", "t": "ACTA_DE_ENTREGA"}];
+
+const state = CHECKLIST.map(() => ({ dataUrl: null, skipped: false }));
+let current = 0;
+let visita = {};
+let generatedPdfBlob = null;
+
+const $ = (id) => document.getElementById(id);
+
+function completedCount(){
+  return state.filter(s => s.dataUrl || s.skipped).length;
+}
+
+function goto(screenId){
+  ['screen-setup','screen-capture','screen-generating','screen-done'].forEach(id=>{
+    $(id).classList.toggle('hidden', id !== screenId);
+  });
+}
+
+$('fFecha').value = new Date().toISOString().slice(0,10);
+$('btnStart').addEventListener('click', () => {
+  visita = {
+    tienda: $('fTienda').value.trim() || '(sin nombre)',
+    ciudad: $('fCiudad').value.trim() || '(sin ciudad)',
+    tecnico: $('fTecnico').value.trim() || '(sin nombre)',
+    fecha: $('fFecha').value || new Date().toISOString().slice(0,10),
+  };
+  goto('screen-capture');
+  renderCurrent();
+  renderList();
+});
+
+$('tabCapture').addEventListener('click', () => switchTab('capture'));
+$('tabList').addEventListener('click', () => switchTab('list'));
+function switchTab(which){
+  $('tabCapture').classList.toggle('active', which === 'capture');
+  $('tabList').classList.toggle('active', which === 'list');
+  $('captureView').classList.toggle('hidden', which !== 'capture');
+  $('listView').classList.toggle('hidden', which !== 'list');
+  if (which === 'list') renderList();
+}
+
+function renderCurrent(){
+  const item = CHECKLIST[current];
+  const s = state[current];
+  $('itemCounter').textContent = `Casilla ${current+1} de ${CHECKLIST.length}`;
+  $('itemName').textContent = item.s;
+  $('progressLabel').textContent = `${completedCount()} / ${CHECKLIST.length}`;
+  $('progressFill').style.width = (completedCount() / CHECKLIST.length * 100) + '%';
+
+  const frame = $('photoFrame');
+  if (s.dataUrl){
+    frame.innerHTML = `<img src="${s.dataUrl}" alt="Foto de ${item.s}">`;
+    $('btnRetake').disabled = false;
+  } else if (s.skipped){
+    frame.innerHTML = `<p class="empty-hint">Casilla saltada</p>`;
+    $('btnRetake').disabled = true;
+  } else {
+    frame.innerHTML = `<p class="empty-hint">Aún no has tomado esta foto</p>`;
+    $('btnRetake').disabled = true;
+  }
+  $('btnPrev').disabled = current === 0;
+  $('btnNext').disabled = current === CHECKLIST.length - 1;
+}
+
+function resizeImage(file, maxWidth, quality){
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxWidth){
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = url;
+  });
+}
+
+$('fileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const dataUrl = await resizeImage(file, 1400, 0.78);
+  state[current].dataUrl = dataUrl;
+  state[current].skipped = false;
+  renderCurrent();
+  e.target.value = '';
+  if (current < CHECKLIST.length - 1){
+    setTimeout(() => { current++; renderCurrent(); }, 350);
+  }
+});
+
+$('btnRetake').addEventListener('click', () => {
+  state[current].dataUrl = null;
+  renderCurrent();
+});
+
+$('btnSkip').addEventListener('click', () => {
+  state[current].dataUrl = null;
+  state[current].skipped = true;
+  renderCurrent();
+  if (current < CHECKLIST.length - 1){
+    current++; renderCurrent();
+  }
+});
+
+$('btnPrev').addEventListener('click', () => { if (current>0){ current--; renderCurrent(); }});
+$('btnNext').addEventListener('click', () => { if (current<CHECKLIST.length-1){ current++; renderCurrent(); }});
+
+$('btnFinishEarly').addEventListener('click', generateReport);
+$('btnGenerateFromList').addEventListener('click', generateReport);
+
+function renderList(){
+  const container = $('listContainer');
+  container.innerHTML = '';
+  CHECKLIST.forEach((item, i) => {
+    const s = state[i];
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    const dotClass = s.dataUrl ? 'done' : (s.skipped ? 'skip' : '');
+    row.innerHTML = `
+      <span class="li-num">${i+1}</span>
+      <span class="status-dot ${dotClass}"></span>
+      <span class="li-text">${item.s}</span>
+    `;
+    row.addEventListener('click', () => {
+      current = i;
+      switchTab('capture');
+      renderCurrent();
+    });
+    container.appendChild(row);
+  });
+}
+
+async function generateReport(){
+  goto('screen-generating');
+  await new Promise(r => setTimeout(r, 50));
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 48;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Informe técnico', margin, 90);
+  doc.setFontSize(13);
+  doc.text('CCTV IP / Alarma de intrusión / Detección de incendio', margin, 112);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  const info = [
+    ['Tienda', visita.tienda],
+    ['Ciudad', visita.ciudad],
+    ['Técnico responsable', visita.tecnico],
+    ['Fecha', visita.fecha],
+  ];
+  let y = 160;
+  info.forEach(([label, value]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label + ':', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(value), margin + 140, y);
+    y += 22;
+  });
+
+  const taken = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.dataUrl);
+  const skipped = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.skipped);
+
+  y += 20;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(`Fotos incluidas: ${taken.length} de ${CHECKLIST.length}`, margin, y);
+  y += 18;
+  doc.text(`Casillas marcadas como no aplicables: ${skipped.length}`, margin, y);
+
+  for (let i = 0; i < taken.length; i++){
+    $('genStatus').textContent = `Procesando foto ${i+1} de ${taken.length}`;
+    await new Promise(r => setTimeout(r, 0));
+
+    doc.addPage();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    const titleLines = doc.splitTextToSize(taken[i].item.s, pageW - margin*2);
+    doc.text(titleLines, margin, margin);
+
+    const titleHeight = titleLines.length * 16;
+    const imgTopY = margin + titleHeight + 14;
+
+    const props = doc.getImageProperties(taken[i].s.dataUrl);
+    const maxW = pageW - margin*2;
+    const maxH = pageH - imgTopY - margin;
+    let w = maxW, h = (props.height / props.width) * w;
+    if (h > maxH){ h = maxH; w = (props.width / props.height) * h; }
+    const x = margin + (maxW - w) / 2;
+
+    doc.addImage(taken[i].s.dataUrl, 'JPEG', x, imgTopY, w, h);
+  }
+
+  generatedPdfBlob = doc;
+  $('doneSummary').textContent =
+    `${visita.tienda} — ${taken.length} fotos incluidas` +
+    (skipped.length ? `, ${skipped.length} casillas marcadas como no aplicables.` : '.');
+  goto('screen-done');
+}
+
+$('btnDownload').addEventListener('click', () => {
+  if (!generatedPdfBlob) return;
+  const safeName = (visita.tienda || 'informe').replace(/[^a-zA-Z0-9]+/g, '_');
+  generatedPdfBlob.save(`Informe_${safeName}_${visita.fecha}.pdf`);
+});
+
+$('btnShare').addEventListener('click', async () => {
+  if (!generatedPdfBlob) return;
+  const safeName = (visita.tienda || 'informe').replace(/[^a-zA-Z0-9]+/g, '_');
+  const filename = `Informe_${safeName}_${visita.fecha}.pdf`;
+  const pdfBlob = generatedPdfBlob.output('blob');
+  const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: filename,
+        text: `Informe técnico — ${visita.tienda}`,
+      });
+    } catch (err) {
+      // el usuario canceló el menú de compartir; no hacer nada
+    }
+  } else {
+    // el navegador no soporta compartir archivos: se descarga como respaldo
+    generatedPdfBlob.save(filename);
+    alert('Tu navegador no soporta compartir directo desde aquí. El PDF se descargó — puedes compartirlo manualmente desde la carpeta de Descargas.');
+  }
+});
+
+$('btnBackToList').addEventListener('click', () => {
+  goto('screen-capture');
+  switchTab('list');
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (completedCount() > 0 && !generatedPdfBlob){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
