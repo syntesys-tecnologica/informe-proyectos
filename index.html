@@ -173,7 +173,7 @@
           <button class="btn btn-secondary" id="btnRetake" disabled>Repetir foto</button>
           <button class="btn btn-secondary" id="btnSkip">Saltar casilla</button>
         </div>
-        <button class="btn btn-ghost" id="btnDownloadCurrent" disabled style="margin-top:2px">⬇ Descargar esta foto</button>
+        <button class="btn btn-ghost" id="btnDownloadCurrent" disabled style="margin-top:2px">⬇ Guardar/compartir esta foto</button>
 
         <div class="nav-row">
           <button id="btnPrev">← Anterior</button>
@@ -633,14 +633,35 @@ $('btnRetake').addEventListener('click', () => {
   renderCurrent();
 });
 
-$('btnDownloadCurrent').addEventListener('click', () => {
+$('btnDownloadCurrent').addEventListener('click', async () => {
   const s = state[current];
   if (!s.dataUrl) return;
   const item = CHECKLIST[current];
   const safeName = (item.t || `foto_${current + 1}`);
+  const filename = `${safeName}.jpg`;
+
+  let file = null;
+  try {
+    const res = await fetch(s.dataUrl);
+    const blob = await res.blob();
+    file = new File([blob], filename, { type: 'image/jpeg' });
+  } catch (err) {}
+
+  // en iPhone/Safari (y muchos Android) esto abre el menú nativo de compartir,
+  // que incluye "Guardar en Fotos" — mucho más confiable que la descarga directa
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+    } catch (err) {
+      // el usuario canceló el menú; no hacemos nada más
+    }
+    return;
+  }
+
+  // respaldo para navegadores que sí soportan descarga directa (Android/computador)
   const a = document.createElement('a');
   a.href = s.dataUrl;
-  a.download = `${safeName}.jpg`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
