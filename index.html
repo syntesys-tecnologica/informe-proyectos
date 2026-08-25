@@ -841,24 +841,33 @@ async function generateReport(){
   const taken = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.dataUrl);
   const skipped = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.skipped);
 
-  // ---------- Dos fotos por página (horizontal), cada una con su título centrado ----------
+  // ---------- Distribución de fotos: 6 por hoja (cuadrícula compacta 2x3) para
+  //            las secciones repetitivas, 2 por hoja para el resto. Cada categoría
+  //            (Calendario, Cámaras, Enfoques, Análisis Dinámico, Zonas, Detector de humo) forma sus
+  //            propios grupos — nunca se mezclan dos categorías en la misma hoja,
+  //            aunque la última quede con menos de 6 fotos. ----------
   const footerReserve = 55;
   const availTop = margin;
   const availBottom = pageH - footerReserve;
-  const slotH = (availBottom - availTop) / 2;
-  const slotGap = 18;
   const imgMaxW = pageW - margin * 2;
 
-  for (let i = 0; i < taken.length; i += 2){
-    $('genStatus').textContent = `Procesando fotos ${i+1}-${Math.min(i+2, taken.length)} de ${taken.length}`;
-    await new Promise(r => setTimeout(r, 0));
+  function categoriaCuadricula(texto){
+    const t = texto.toUpperCase();
+    if (t.includes('CALENDARIO GRABACIÓN')) return 'calendario';
+    if (t.includes('ENFOQUE') && t.includes('CÁMARA')) return 'enfoque';
+    if (t.includes('CÁMARA')) return 'camara';
+    if (t.includes('ANÁLISIS DINAMICO')) return 'analisis';
+    if (/\bZONA\b/.test(t)) return 'zona';
+    if (t.includes('DETECTOR HUMO')) return 'detector';
+    return null; // no pertenece a ninguna categoría de cuadrícula
+  }
 
+  function dibujarParPagina(pair){
+    const slotH = (availBottom - availTop) / 2;
+    const slotGap = 18;
     doc.addPage();
-    const pair = [taken[i], taken[i + 1]].filter(Boolean);
-
     pair.forEach((entry, idx) => {
       const slotTop = availTop + idx * slotH;
-
       doc.setTextColor(20, 20, 20);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
@@ -874,9 +883,88 @@ async function generateReport(){
       if (h > imgMaxH){ h = imgMaxH; w = (props.width / props.height) * h; }
       const x = centerX - w / 2;
       const y = imgTopY + (imgMaxH - h) / 2;
-
       doc.addImage(entry.s.dataUrl, 'JPEG', x, y, w, h);
     });
+  }
+
+  // cuadrícula compacta: 2 columnas, hasta 3 filas (6 fotos); el tamaño real de
+  // cada foto se calcula sin forzar un alto fijo, para no dejar huecos.
+  function dibujarCuadriculaPagina(chunk){
+    const cols = 2;
+    const colGap = 16, rowGap = 20;
+    const gridW = pageW - margin * 2;
+    const colW = (gridW - colGap) / cols;
+
+    const cells = chunk.map(entry => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      const titleLines = doc.splitTextToSize(entry.item.s, colW - 6);
+      const titleH = titleLines.length * 12 + 8;
+      const props = doc.getImageProperties(entry.s.dataUrl);
+      const w = colW;
+      const h = (props.height / props.width) * w;
+      return { entry, titleLines, titleH, w, h };
+    });
+
+    const rows = [];
+    for (let i = 0; i < cells.length; i += cols){
+      rows.push(cells.slice(i, i + cols));
+    }
+    const rowLayout = rows.map(row => ({
+      row,
+      titleH: Math.max(...row.map(c => c.titleH)),
+      imgH: Math.max(...row.map(c => c.h)),
+    }));
+    const totalH = rowLayout.reduce(
+      (sum, r, i) => sum + r.titleH + r.imgH + (i > 0 ? rowGap : 0), 0
+    );
+    const gridTop = Math.max(availTop, availTop + ((availBottom - availTop) - totalH) / 2);
+
+    doc.addPage();
+    let rowTop = gridTop;
+    rowLayout.forEach(({ row, titleH, imgH }) => {
+      row.forEach((cell, cIdx) => {
+        const cellX = margin + cIdx * (colW + colGap);
+        const cellCenterX = cellX + colW / 2;
+        doc.setTextColor(20, 20, 20);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(cell.titleLines, cellCenterX, rowTop + 9, { align: 'center' });
+        const imgY = rowTop + titleH;
+        doc.addImage(cell.entry.s.dataUrl, 'JPEG', cellX, imgY, cell.w, cell.h);
+      });
+      rowTop += titleH + imgH + rowGap;
+    });
+  }
+
+  // agrupar en "corridas" consecutivas por categoría — un cambio de categoría
+  // (incluso entre dos categorías de cuadrícula distintas) siempre corta el grupo.
+  const runs = [];
+  for (const entry of taken){
+    const cat = categoriaCuadricula(entry.item.s);
+    const last = runs[runs.length - 1];
+    if (!last || last.cat !== cat){
+      runs.push({ cat, special: cat !== null, items: [entry] });
+    } else {
+      last.items.push(entry);
+    }
+  }
+
+  let procesadas = 0;
+  for (const run of runs){
+    const chunkSize = run.special ? 6 : 2;
+    for (let i = 0; i < run.items.length; i += chunkSize){
+      const chunk = run.items.slice(i, i + chunkSize);
+      procesadas += chunk.length;
+      $('genStatus').textContent = `Procesando fotos ${procesadas} de ${taken.length}`;
+      await new Promise(r => setTimeout(r, 0));
+
+      if (run.special){
+        dibujarCuadriculaPagina(chunk);
+      } else {
+        dibujarParPagina(chunk);
+      }
+    }
   }
 
   // ---------- Pie de página en todas las hojas (marca + numeración) ----------
