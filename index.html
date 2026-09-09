@@ -1229,7 +1229,8 @@ function renderTabs(){
 /* ----- RESUMEN ----- */
 function renderResumen(){
   const total = projects.length;
-  const avgAvance = total ? Math.round(projects.reduce((s,p)=>s+computeAvance(p),0)/total) : 0;
+  const recaudados = projects.filter(p => p.estado === 'RECAUDADO').length;
+  const avgAvance = total ? Math.round((recaudados/total)*100) : 0;
   const kpis = STATUSES.map(st => ({ st, count: projects.filter(p=>p.estado===st).length }));
 
   // Un perfil de usuario (no administrador) solo debe ver en "Últimas
@@ -1244,8 +1245,7 @@ function renderResumen(){
         <div class="kpi-card kpi-card-hero">
           <div class="kpi-hero-eyebrow">Avance general de la operación DC</div>
           <div class="kpi-hero-value">${avgAvance}%</div>
-          <div class="kpi-hero-label">Promedio de avance de tubería, cableado y equipos en todos los proyectos</div>
-          <div class="kpi-hero-sub">${total} proyectos tiendas DC en el sistema</div>
+          <div class="kpi-hero-sub">${recaudados} de ${total} proyectos recaudados · ${total-recaudados} por ejecutar</div>
         </div>
         ${kpis.map(k => `
           <div class="kpi-card" style="border-left-color:${STATUS_COLORS[k.st]}">
@@ -1359,7 +1359,7 @@ function renderProyectos(){
           ${(filters.estado.size||filters.contratista||filters.ciudad||filters.coordinador||filters.search) ? '<button class="btn btn-text" data-action="clear-filters">Limpiar filtros</button>' : ''}
         </div>
         <div class="toolbar-right">
-          ${canManageTrash ? `<button class="btn btn-text" data-action="open-trash">🗑️ Papelera${trash.length ? ` (${trash.length})` : ''}</button>` : ''}
+          ${canManageTrash ? `<button class="btn btn-outline" data-action="open-trash">🗑️ Papelera${trash.length ? ` (${trash.length})` : ''}</button>` : ''}
           <button class="btn btn-outline" data-action="export-excel">Exportar a Excel</button>
           <button class="btn btn-primary" data-action="open-new-project">+ Nuevo proyecto</button>
         </div>
