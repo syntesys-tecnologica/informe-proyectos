@@ -391,6 +391,11 @@ html[data-theme="dark"] .status-chip{ color:var(--ink); }
 /* ---------- Table ---------- */
 .table-wrap{ overflow-x:auto; border:1px solid var(--line); background:var(--card); border-radius:var(--r-md); box-shadow:var(--shadow-xs); }
 .data-table{ width:100%; border-collapse:collapse; font-size:13px; min-width:900px; }
+/* Variante para tablas con pocas columnas (ej. "Detalle de tiempos por
+   etapa"): sin ancho mínimo forzado, así el texto de cada celda se ajusta
+   (wrap) al ancho disponible en vez de obligar a hacer scroll horizontal. */
+.data-table-compact{ min-width:0; }
+.data-table-compact thead th{ white-space:normal; }
 .data-table thead th{
   text-align:left; padding:12px 14px; background:var(--paper); border-bottom:1px solid var(--line);
   font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); white-space:nowrap; font-weight:700;
@@ -1647,7 +1652,7 @@ function renderAnalisis(){
           <h3 class="chart-title">Detalle de tiempos por etapa</h3>
           <p class="auth-note" style="margin-bottom:10px">Mismos datos del gráfico anterior, en formato de tabla.</p>
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table-compact">
               <thead><tr><th>Etapa</th><th>Promedio (días)</th><th>Proyectos con ambas fechas</th></tr></thead>
               <tbody>
                 ${timings.map(t => `
