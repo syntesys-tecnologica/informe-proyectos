@@ -299,11 +299,19 @@ html[data-theme="dark"] .btn-text{ color:var(--muted); }
 /* Contenedores de altura fija para que los gráficos de barras se vean más
    compactos tanto en PC como en móvil (antes crecían con el ancho de la
    pantalla y quedaban demasiado altos). */
-.chart-canvas-box{ position:relative; height:220px; }
+.chart-canvas-box{ position:relative; height:280px; }
 .chart-canvas-box-lg{ position:relative; height:260px; }
 @media (max-width:640px){
-  .chart-canvas-box{ height:170px; }
+  .chart-canvas-box{ height:260px; }
   .chart-canvas-box-lg{ height:200px; }
+}
+
+/* Altura dinámica según cantidad de filas/categorías (usada por el gráfico
+   de "Tiempos promedio entre etapas"). En móvil cada fila necesita más alto
+   porque las etiquetas son más largas y se parten en varias líneas. */
+.chart-canvas-dynamic{ position:relative; height:calc(var(--chart-rows, 6) * 42px); min-height:240px; }
+@media (max-width:640px){
+  .chart-canvas-dynamic{ height:calc(var(--chart-rows, 6) * 62px); min-height:260px; }
 }
 
 .mapa-box{
@@ -1592,7 +1600,6 @@ function renderAnalisis(){
 
   const timings = computeStageTimings();
   const bottleneck = timings.filter(t=>t.avg!==null).sort((a,b)=>b.avg-a.avg)[0];
-  const timingsChartHeight = Math.max(220, timings.length * 46);
 
   return `
     <section class="panel">
@@ -1654,7 +1661,7 @@ function renderAnalisis(){
             Cuántos días tarda, en promedio, un proyecto en pasar de una etapa a la siguiente (solo se cuentan los proyectos que tienen registradas ambas fechas).
             ${bottleneck ? ` El mayor cuello de botella actual es <strong>${esc(bottleneck.label)}</strong>, con un promedio de <strong>${bottleneck.avg} días</strong>.` : ''}
           </p>
-          <div style="height:${timingsChartHeight}px">
+          <div class="chart-canvas-dynamic" style="--chart-rows:${timings.length}">
             <canvas id="chartTiempos"></canvas>
           </div>
           <div class="table-wrap" style="margin-top:14px">
