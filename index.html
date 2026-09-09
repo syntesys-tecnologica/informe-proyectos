@@ -1585,6 +1585,7 @@ function renderAnalisis(){
 
   const timings = computeStageTimings();
   const bottleneck = timings.filter(t=>t.avg!==null).sort((a,b)=>b.avg-a.avg)[0];
+  const timingsChartHeight = Math.max(280, timings.length * 60 + 30);
 
   return `
     <section class="panel">
@@ -1635,10 +1636,17 @@ function renderAnalisis(){
             Cuántos días tarda, en promedio, un proyecto en pasar de una etapa a la siguiente (solo se cuentan los proyectos que tienen registradas ambas fechas).
             ${bottleneck ? ` El mayor cuello de botella actual es <strong>${esc(bottleneck.label)}</strong>, con un promedio de <strong>${bottleneck.avg} días</strong>.` : ''}
           </p>
-          <div class="chart-canvas-box">
+          <div class="chart-canvas-box" style="height:${timingsChartHeight}px">
             <canvas id="chartTiempos"></canvas>
           </div>
-          <div class="table-wrap" style="margin-top:14px">
+        </div>
+      </div>
+
+      <div class="panel-row">
+        <div class="chart-box chart-box-wide">
+          <h3 class="chart-title">Detalle de tiempos por etapa</h3>
+          <p class="auth-note" style="margin-bottom:10px">Mismos datos del gráfico anterior, en formato de tabla.</p>
+          <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>Etapa</th><th>Promedio (días)</th><th>Proyectos con ambas fechas</th></tr></thead>
               <tbody>
@@ -2138,7 +2146,7 @@ const CHART_FONT = { family: "'Inter', -apple-system, sans-serif", size: 12 };
 
 // Tooltip y ejes con la misma apariencia "de papel" del resto de la app:
 // fondo oscuro sólido, esquinas redondeadas, sin bordes duros en la grilla.
-function elegantScales({ horizontal = false } = {}){
+function elegantScales({ horizontal = false, noSkip = false } = {}){
   const valueAxis = {
     beginAtZero: true,
     ticks: { precision: 0, color: CHART_MUTED(), font: CHART_FONT },
@@ -2146,7 +2154,7 @@ function elegantScales({ horizontal = false } = {}){
     border: { display: false },
   };
   const categoryAxis = {
-    ticks: { color: CHART_INK(), font: { ...CHART_FONT, weight: '600' } },
+    ticks: { color: CHART_INK(), font: { ...CHART_FONT, weight: '600' }, autoSkip: !noSkip },
     grid: { display: false },
     border: { display: false },
   };
@@ -2305,7 +2313,7 @@ function buildCharts(){
           legend: elegantLegend(false),
           tooltip: elegantTooltip({ callbacks:{ label: (ctx) => ctx.raw===null ? 'Sin datos suficientes' : `${ctx.raw} días en promedio` } }),
         },
-        scales: elegantScales({ horizontal:true }),
+        scales: elegantScales({ horizontal:true, noSkip:true }),
       }
     });
   }
