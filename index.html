@@ -394,8 +394,10 @@ html[data-theme="dark"] .status-chip{ color:var(--ink); }
 /* Variante para tablas con pocas columnas (ej. "Detalle de tiempos por
    etapa"): sin ancho mínimo forzado, así el texto de cada celda se ajusta
    (wrap) al ancho disponible en vez de obligar a hacer scroll horizontal. */
-.data-table-compact{ min-width:0; }
-.data-table-compact thead th{ white-space:normal; }
+.data-table-compact{ min-width:0; table-layout:fixed; }
+.data-table-compact thead th{ white-space:normal; text-align:center; }
+.data-table-compact td, .data-table-compact th{ word-break:break-word; overflow-wrap:break-word; text-align:center; }
+.data-table-compact td:first-child, .data-table-compact th:first-child{ text-align:left; }
 .data-table thead th{
   text-align:left; padding:12px 14px; background:var(--paper); border-bottom:1px solid var(--line);
   font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); white-space:nowrap; font-weight:700;
@@ -1650,16 +1652,15 @@ function renderAnalisis(){
       <div class="panel-row">
         <div class="chart-box chart-box-wide">
           <h3 class="chart-title">Detalle de tiempos por etapa</h3>
-          <p class="auth-note" style="margin-bottom:10px">Mismos datos del gráfico anterior, en formato de tabla.</p>
+          <p class="auth-note" style="margin-bottom:10px">Mismos datos del gráfico anterior, en formato de tabla. "Días prom." es el promedio de días entre etapas.</p>
           <div class="table-wrap">
             <table class="data-table data-table-compact">
-              <thead><tr><th>Etapa</th><th>Promedio (días)</th><th>Proyectos con ambas fechas</th></tr></thead>
+              <thead><tr><th style="width:70%">Etapa</th><th style="width:30%">Días prom.</th></tr></thead>
               <tbody>
                 ${timings.map(t => `
                   <tr${bottleneck && t.key===bottleneck.key ? ' style="background:#FDFBEF"' : ''}>
                     <td class="cell-strong">${esc(t.label)}</td>
-                    <td>${t.avg===null ? '—' : `${t.avg} días`}</td>
-                    <td class="cell-sub">${t.n}</td>
+                    <td>${t.avg===null ? '—' : t.avg}</td>
                   </tr>
                 `).join('')}
               </tbody>
