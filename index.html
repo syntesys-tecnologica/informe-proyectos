@@ -299,19 +299,21 @@ html[data-theme="dark"] .btn-text{ color:var(--muted); }
 /* Contenedores de altura fija para que los gráficos de barras se vean más
    compactos tanto en PC como en móvil (antes crecían con el ancho de la
    pantalla y quedaban demasiado altos). */
-.chart-canvas-box{ position:relative; height:280px; }
-.chart-canvas-box-lg{ position:relative; height:260px; }
+.chart-canvas-box{ position:relative; height:300px; }
 @media (max-width:640px){
   .chart-canvas-box{ height:260px; }
-  .chart-canvas-box-lg{ height:200px; }
 }
 
-/* Altura dinámica según cantidad de filas/categorías (usada por el gráfico
-   de "Tiempos promedio entre etapas"). En móvil cada fila necesita más alto
-   porque las etiquetas son más largas y se parten en varias líneas. */
-.chart-canvas-dynamic{ position:relative; height:calc(var(--chart-rows, 6) * 42px); min-height:240px; }
+/* Contenedor de altura FIJA e IGUAL para todos los gráficos, con scroll
+   interno cuando el gráfico tiene más categorías de las que caben (ej.
+   "Proyectos por ciudad" con 28 ciudades, o "Tiempos promedio entre
+   etapas"). Así todas las tarjetas se ven del mismo tamaño en pantalla,
+   sin apretar las barras ni cortar etiquetas: el contenido extra queda
+   accesible haciendo scroll dentro de esa misma tarjeta. */
+.chart-canvas-scroll{ position:relative; height:300px; overflow-y:auto; overflow-x:hidden; }
+.chart-canvas-scroll-inner{ position:relative; }
 @media (max-width:640px){
-  .chart-canvas-dynamic{ height:calc(var(--chart-rows, 6) * 62px); min-height:260px; }
+  .chart-canvas-scroll{ height:260px; }
 }
 
 .mapa-box{
@@ -1253,7 +1255,7 @@ function renderResumen(){
         <div class="kpi-card kpi-card-hero">
           <div class="kpi-hero-eyebrow">Avance general de la operación DC</div>
           <div class="kpi-hero-value">${avgAvance}%</div>
-          <div class="kpi-hero-sub">${recaudados} de ${total} proyectos recaudados · ${total-recaudados} por ejecutar</div>
+          <div class="kpi-hero-sub">${recaudados} de ${total} proyectos recaudados · ${total-recaudados} por recaudar</div>
         </div>
         ${kpis.map(k => `
           <div class="kpi-card" style="border-left-color:${STATUS_COLORS[k.st]}">
@@ -1594,12 +1596,13 @@ function renderAnalisis(){
   `).join('');
 
   const cityCount = uniqueValues('ciudad').length;
-  const cityChartHeight = Math.max(280, cityCount * 26);
+  const cityChartHeight = Math.max(300, cityCount * 30);
   const contratistaCount = uniqueValues('contratista').length;
-  const contratistaChartHeight = Math.max(200, contratistaCount * 22);
+  const contratistaChartHeight = Math.max(300, contratistaCount * 30);
 
   const timings = computeStageTimings();
   const bottleneck = timings.filter(t=>t.avg!==null).sort((a,b)=>b.avg-a.avg)[0];
+  const timingsChartHeight = Math.max(300, timings.length * 60);
 
   return `
     <section class="panel">
@@ -1627,7 +1630,7 @@ function renderAnalisis(){
       <div class="panel-row">
         <div class="chart-box chart-box-wide">
           <h3 class="chart-title">Facturación, OC y recaudo — últimas ${WEEKS_BACK} semanas</h3>
-          <div class="chart-canvas-box-lg">
+          <div class="chart-canvas-box">
             <canvas id="chartSemanal"></canvas>
           </div>
         </div>
@@ -1661,8 +1664,10 @@ function renderAnalisis(){
             Cuántos días tarda, en promedio, un proyecto en pasar de una etapa a la siguiente (solo se cuentan los proyectos que tienen registradas ambas fechas).
             ${bottleneck ? ` El mayor cuello de botella actual es <strong>${esc(bottleneck.label)}</strong>, con un promedio de <strong>${bottleneck.avg} días</strong>.` : ''}
           </p>
-          <div class="chart-canvas-dynamic" style="--chart-rows:${timings.length}">
-            <canvas id="chartTiempos"></canvas>
+          <div class="chart-canvas-scroll">
+            <div class="chart-canvas-scroll-inner" style="height:${timingsChartHeight}px">
+              <canvas id="chartTiempos"></canvas>
+            </div>
           </div>
           <div class="table-wrap" style="margin-top:14px">
             <table class="data-table">
@@ -1685,8 +1690,10 @@ function renderAnalisis(){
         <div class="chart-box chart-box-wide">
           <h3 class="chart-title">Proyectos por ciudad</h3>
           <p class="auth-note" style="margin-bottom:10px">Total acumulado de proyectos abiertos en cada ciudad (${cityCount} ciudades), para ver dónde ha habido más apertura de tiendas.</p>
-          <div style="height:${cityChartHeight}px">
-            <canvas id="chartCiudad"></canvas>
+          <div class="chart-canvas-scroll">
+            <div class="chart-canvas-scroll-inner" style="height:${cityChartHeight}px">
+              <canvas id="chartCiudad"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -1695,8 +1702,10 @@ function renderAnalisis(){
         <div class="chart-box chart-box-wide">
           <h3 class="chart-title">Proyectos por contratista (cantidad)</h3>
           <p class="auth-note" style="margin-bottom:10px">Total acumulado de proyectos que ha desarrollado cada contratista.</p>
-          <div style="height:${contratistaChartHeight}px">
-            <canvas id="chartContratistaCount"></canvas>
+          <div class="chart-canvas-scroll">
+            <div class="chart-canvas-scroll-inner" style="height:${contratistaChartHeight}px">
+              <canvas id="chartContratistaCount"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -2307,7 +2316,7 @@ function buildCharts(){
     safeChart(elTiempos, 'tiempos', {
       type:'bar',
       data:{
-        labels: timings.map(t=>t.label),
+        labels: timings.map(t => t.label.includes(' → ') ? t.label.split(' → ') : t.label),
         datasets:[{
           label:'Días promedio',
           data: timings.map(t=>t.avg),
