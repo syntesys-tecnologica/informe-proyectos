@@ -859,13 +859,16 @@ async function generateReport(){
     // 1 imagen por hoja: zonificaciones y actas de entrega
     if (t.includes('ZONIFICACIÓN')) return 'individual';
     if (t.startsWith('ACTA DE ENTREGA')) return 'individual';
-    // 6 imágenes por hoja (cuadrícula 2x3): secciones repetitivas
+    // 6 imágenes por hoja (cuadrícula 2x3): solo las casillas numeradas y repetitivas.
+    // Se usan patrones exactos (no solo "incluye CÁMARA") para que ítems de
+    // configuración como "PARAMETROS DE VIDEO CÁMARA GERENCIA" o "CONFIGURACIÓN
+    // DE NOMBRES CÁMARAS/DIR IP" NO caigan aquí y queden en 2 por hoja.
     if (t.includes('CALENDARIO GRABACIÓN')) return 'calendario';
-    if (t.includes('ANÁLISIS') && t.includes('CÁMARA')) return 'analisis';
-    if (t.includes('ENFOQUE') && t.includes('CÁMARA')) return 'enfoque';
-    if (t.includes('CÁMARA')) return 'camara';
-    if (/\bZONA\b/.test(t)) return 'zona';
-    if (t.includes('DETECTOR HUMO')) return 'detector';
+    if (/^ANÁLISIS DINÁMICO CÁMARA \d+ DESACTIVADO$/.test(t)) return 'analisis';
+    if (/^ENFOQUE CÁMARA \d+$/.test(t)) return 'enfoque';
+    if (/^CÁMARA \d+$/.test(t)) return 'camara';
+    if (/^ZONA \d+$/.test(t)) return 'zona';
+    if (/^DETECTOR HUMO \d+$/.test(t)) return 'detector';
     return null; // 2 imágenes por hoja (resto de casillas)
   }
 
@@ -891,27 +894,39 @@ async function generateReport(){
   }
 
   function dibujarParPagina(pair){
-    const slotH = (availBottom - availTop) / 2;
-    const slotGap = 0; // sin espacio entre las dos imágenes de la hoja
+    // altura máxima de seguridad por imagen (evita que una imagen invada el
+    // espacio de la otra si viene con una proporción muy alargada)
+    const slotHMax = (availBottom - availTop) / 2;
+
     doc.addPage();
-    pair.forEach((entry, idx) => {
-      const slotTop = availTop + idx * slotH;
-      doc.setTextColor(20, 20, 20);
+
+    const cells = pair.map(entry => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       const titleLines = doc.splitTextToSize(entry.item.s, imgMaxW);
-      doc.text(titleLines, centerX, slotTop + 12, { align: 'center' });
-
-      const titleBlockH = titleLines.length * 15 + 10;
-      const imgTopY = slotTop + titleBlockH;
-      const imgMaxH = slotH - titleBlockH - slotGap;
-
+      const titleH = titleLines.length * 15 + 10;
       const props = doc.getImageProperties(entry.s.dataUrl);
       let w = imgMaxW, h = (props.height / props.width) * w;
+      const imgMaxH = slotHMax - titleH;
       if (h > imgMaxH){ h = imgMaxH; w = (props.width / props.height) * h; }
-      const x = centerX - w / 2;
-      const y = imgTopY + (imgMaxH - h) / 2;
-      doc.addImage(entry.s.dataUrl, 'JPEG', x, y, w, h);
+      return { entry, titleLines, titleH, w, h };
+    });
+
+    // se apilan una debajo de otra sin espacio entre ellas; el bloque
+    // completo (título+imagen, título+imagen) se centra verticalmente
+    // en la hoja para que quede uniforme, sin importar la proporción de cada foto.
+    const totalH = cells.reduce((sum, c) => sum + c.titleH + c.h, 0);
+    let top = Math.max(availTop, availTop + ((availBottom - availTop) - totalH) / 2);
+
+    cells.forEach(cell => {
+      doc.setTextColor(20, 20, 20);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(cell.titleLines, centerX, top + 12, { align: 'center' });
+      const imgY = top + cell.titleH;
+      const imgX = centerX - cell.w / 2;
+      doc.addImage(cell.entry.s.dataUrl, 'JPEG', imgX, imgY, cell.w, cell.h);
+      top += cell.titleH + cell.h; // sin espacio: la siguiente casilla arranca justo después
     });
   }
 
