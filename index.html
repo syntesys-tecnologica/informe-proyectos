@@ -466,48 +466,6 @@ const CHECKLIST = [
   { "s": "ACTA DE ENTREGA (3)", "t": "ACTA_DE_ENTREGA_3" },
 ];
 
-// Distribución de imágenes por hoja del informe final, definida explícitamente
-// por casilla (según el listado entregado): 1, 2 o 6 imágenes por hoja.
-const PAGINAS_POR_CASILLA = {
-  "RACK_SISTEMA_CCTV_IP": 2,
-  "PLANO_FINAL_DE_EQUIPOS_CCTV_TIENDA": 2,
-  "VERSIÓN_DE_FIRMWARE_NVR": 2,
-  "CONFIGURACION_DE_RESOLUCION": 2,
-  "CONFIGURACION_DE_RED_LAN_1": 2,
-  "CONFIGURACION_DE_USUARIOS": 2,
-  "CONFIGURACION_DE_HORA_Y_REGION": 2,
-  "CONFIGURACION__DE_NTP": 2,
-  "OPCION_DE_ACTUALIZACION_DE_FIRMWARE_DESACTIVADO": 2,
-  "CONFIGURACION_DE_PUERTOS": 2,
-  "CONFIGURACION_DE_NOMBRES_CAMARAS_DIR_IP": 2,
-  "CONFIGURACION_DE_NOMBRES_CAMARAS_DIR_IP_2": 2,
-  "PARAMETROS_DE_STREAM_PPAL_CAMARAS": 2,
-  "PARAMETROS_DE_SUB_STREAM_CAMARAS": 2,
-  "PARAMETROS_DE_VIDEO_CAMARA_FR": 2,
-  "PARAMETROS_DE_VIDEO_CAMARA_GERENCIA": 2,
-  "CONFIGURACION_AVANZADA_DE_AUDIO_CAMARA_GERENCIA": 2,
-  "VISUAL_DE_TODAS_LAS_CAMARAS": 2,
-  "VALIDACION_DE_GRABACION": 2,
-  "VALIDACION_DE_GRABACION_2": 2,
-  "PLANO_FINAL_ALARMA_INTRUSION_TIENDA": 2,
-  "PLANO_FINAL_ALARMA_INTRUSION_BODEGA": 2,
-  "PLANO_FINAL_ALARMA_INTRUSION_PARQUEADERO": 2,
-  "TECLADO_ALARMA_DE_INTRUSION": 2,
-  "UBICACION_GABINETES_ALARMA_DE_INTRUSION": 2,
-  "GABINETE_TARJETA PRINCIPAL_ALARMA_DE_INTRUSION": 2,
-  "GABINETE_EXPANSORAS_Y_FUENTE_ALARMA_DE_INTRUSION": 2,
-  "PLANO_FINAL_EQUIPOS_DETECCION_INCENDIO_TIENDA": 2,
-  "PLANO_FINAL_EQUIPOS_DETECCION_INCENDIO_BODEGA": 2,
-  "PLANO_FINAL_DETECCION_INCENDIO_PARQUEADERO": 2,
-  "PANEL_DE_INCENDIO_CERTIFICADO": 2,
-  "TECLADO_ANUNCIADOR": 2,
-  "ZONIFICACION_ALARMA_DE_NTRUSION": 1,
-  "ZONIFICACION_SISTEMA_DETECCION_DE_INCENDIO": 1,
-  "ACTA_DE_ENTREGA": 1,
-  "ACTA_DE_ENTREGA_2": 1,
-  "ACTA_DE_ENTREGA_3": 1,
-};
-
 const state = CHECKLIST.map(() => ({ dataUrl: null, skipped: false }));
 let current = 0;
 let visita = {};
@@ -896,25 +854,19 @@ async function generateReport(){
   const availBottom = pageH - footerReserve;
   const imgMaxW = pageW - margin * 2;
 
-  // Cantidad de imágenes por hoja para una casilla dada (según su código "t"),
-  // tomada de la distribución explícita definida en PAGINAS_POR_CASILLA.
-  function paginasPorCasilla(t){
-    return PAGINAS_POR_CASILLA[t] || 2;
-  }
-
-  // Familia/agrupación visual de la casilla: además de la cantidad por hoja,
-  // esto evita mezclar en una misma cuadrícula dos secciones distintas que
-  // ambas usan 6 imágenes por hoja (p. ej. calendarios y cámaras).
-  function familiaCasilla(t, n){
-    if (n === 1) return 'individual';
-    if (n === 2) return 'par';
-    if (/^C\d+$/.test(t)) return 'calendario';
-    if (t.endsWith('_VISTA')) return 'camara';
-    if (t.endsWith('_ENFOQUE')) return 'enfoque';
-    if (/^CAMARA_\d+$/.test(t)) return 'analisis';
-    if (/^ZONA_\d+$/.test(t)) return 'zona';
-    if (t.startsWith('DETECTOR_HUMO_')) return 'detector';
-    return 'grupo6';
+  function categoriaPagina(texto){
+    const t = texto.toUpperCase();
+    // 1 imagen por hoja: zonificaciones y actas de entrega
+    if (t.includes('ZONIFICACIÓN')) return 'individual';
+    if (t.startsWith('ACTA DE ENTREGA')) return 'individual';
+    // 6 imágenes por hoja (cuadrícula 2x3): secciones repetitivas
+    if (t.includes('CALENDARIO GRABACIÓN')) return 'calendario';
+    if (t.includes('ANÁLISIS') && t.includes('CÁMARA')) return 'analisis';
+    if (t.includes('ENFOQUE') && t.includes('CÁMARA')) return 'enfoque';
+    if (t.includes('CÁMARA')) return 'camara';
+    if (/\bZONA\b/.test(t)) return 'zona';
+    if (t.includes('DETECTOR HUMO')) return 'detector';
+    return null; // 2 imágenes por hoja (resto de casillas)
   }
 
   // dibuja una sola imagen ocupando toda la hoja (usado para zonificaciones y actas de entrega)
@@ -1017,19 +969,24 @@ async function generateReport(){
   // (incluso entre dos categorías de cuadrícula distintas) siempre corta el grupo.
   const runs = [];
   for (const entry of taken){
-    const n = paginasPorCasilla(entry.item.t);
-    const cat = familiaCasilla(entry.item.t, n);
+    const cat = categoriaPagina(entry.item.s);
     const last = runs[runs.length - 1];
     if (!last || last.cat !== cat){
-      runs.push({ cat, n, items: [entry] });
+      runs.push({ cat, items: [entry] });
     } else {
       last.items.push(entry);
     }
   }
 
+  function chunkSizeDeCategoria(cat){
+    if (cat === 'individual') return 1; // zonificaciones y actas de entrega
+    if (cat === null) return 2;         // resto de casillas
+    return 6;                           // calendarios, cámaras, enfoques, análisis, zonas, detectores
+  }
+
   let procesadas = 0;
   for (const run of runs){
-    const chunkSize = run.n;
+    const chunkSize = chunkSizeDeCategoria(run.cat);
     for (let i = 0; i < run.items.length; i += chunkSize){
       const chunk = run.items.slice(i, i + chunkSize);
       procesadas += chunk.length;
@@ -1038,7 +995,7 @@ async function generateReport(){
 
       if (run.cat === 'individual'){
         dibujarUnaPagina(chunk[0]);
-      } else if (run.cat === 'par'){
+      } else if (run.cat === null){
         dibujarParPagina(chunk);
       } else {
         dibujarCuadriculaPagina(chunk);
