@@ -923,7 +923,7 @@ async function generateReport(){
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text(cell.titleLines, centerX, top + 12, { align: 'center' });
-      const imgY = top + cell.titleH;
+      const imgY = top + cell.titleH + 10;
       const imgX = centerX - cell.w / 2;
       doc.addImage(cell.entry.s.dataUrl, 'JPEG', imgX, imgY, cell.w, cell.h);
       top += cell.titleH + cell.h; // sin espacio: la siguiente casilla arranca justo después
