@@ -356,7 +356,7 @@ const CHECKLIST = [
   { "s": "ANÁLISIS DINÁMICO CÁMARA 30 DESACTIVADO", "t": "CAMARA_30" },
   { "s": "PLANO FINAL ALARMA DE INTRUSIÓN TIENDA", "t": "PLANO_FINAL_ALARMA_INTRUSION_TIENDA" },
   { "s": "PLANO FINAL ALARMA DE INTRUSIÓN BODEGA", "t": "PLANO_FINAL_ALARMA_INTRUSION_BODEGA" },
-  { "s": "PLANO FINAL ALARMA DE INTRUSIÓN PARQUEADERO", "t": "PLANO_FINAL_ALARMA_INTRUSION_PARQUEADERO" },
+  { "s": "PLANO FINAL_ALARMA DE INTRUSIÓN PARQUEADERO", "t": "PLANO_FINAL_ALARMA_INTRUSION_PARQUEADERO" },
   { "s": "ZONIFICACIÓN ALARMA DE INTRUSIÓN", "t": "ZONIFICACION_ALARMA_DE_NTRUSION" },
   { "s": "TECLADO ALARMA DE INTRUSIÓN", "t": "TECLADO_ALARMA_DE_INTRUSION" },
   { "s": "UBICACIÓN GABINETES ALARMA DE INTRUSIÓN", "t": "UBICACION_GABINETES_ALARMA_DE_INTRUSION" },
@@ -904,7 +904,7 @@ async function generateReport(){
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       const titleLines = doc.splitTextToSize(entry.item.s, imgMaxW);
-      const titleH = titleLines.length * 15 + 20;
+      const titleH = titleLines.length * 15 + 10;
       const props = doc.getImageProperties(entry.s.dataUrl);
       let w = imgMaxW, h = (props.height / props.width) * w;
       const imgMaxH = slotHMax - titleH;
@@ -923,7 +923,7 @@ async function generateReport(){
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.text(cell.titleLines, centerX, top + 12, { align: 'center' });
-      const imgY = top + cell.titleH + 10;
+      const imgY = top + cell.titleH;
       const imgX = centerX - cell.w / 2;
       doc.addImage(cell.entry.s.dataUrl, 'JPEG', imgX, imgY, cell.w, cell.h);
       top += cell.titleH + cell.h; // sin espacio: la siguiente casilla arranca justo después
@@ -934,7 +934,7 @@ async function generateReport(){
   // cada foto se calcula sin forzar un alto fijo, para no dejar huecos.
   function dibujarCuadriculaPagina(chunk){
     const cols = 2;
-    const colGap = 12, rowGap = 12; // con espacio entre imágenes, para una cuadrícula uniforme
+    const colGap = 0, rowGap = 0; // sin espacio entre imágenes, para una cuadrícula uniforme
     const gridW = pageW - margin * 2;
     const colW = (gridW - colGap) / cols;
 
