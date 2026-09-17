@@ -922,7 +922,7 @@ async function generateReport(){
       doc.setTextColor(20, 20, 20);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
-      doc.text(cell.titleLines, centerX, top + 12, { align: 'center' });
+      doc.text(cell.titleLines, centerX, top + 18, { align: 'center' });
       const imgY = top + cell.titleH;
       const imgX = centerX - cell.w / 2;
       doc.addImage(cell.entry.s.dataUrl, 'JPEG', imgX, imgY, cell.w, cell.h);
