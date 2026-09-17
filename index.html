@@ -904,7 +904,7 @@ async function generateReport(){
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       const titleLines = doc.splitTextToSize(entry.item.s, imgMaxW);
-      const titleH = titleLines.length * 15 + 10;
+      const titleH = titleLines.length * 15 + 20;
       const props = doc.getImageProperties(entry.s.dataUrl);
       let w = imgMaxW, h = (props.height / props.width) * w;
       const imgMaxH = slotHMax - titleH;
