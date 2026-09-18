@@ -912,7 +912,6 @@ async function generateReport(){
       if (h > imgMaxH){ h = imgMaxH; w = (props.width / props.height) * h; }
       return { entry, titleLines, titleH, w, h };
     });
-
     if (cells.length === 2) {
     cells[1].w = cells[0].w;
     cells[1].h = cells[0].h;
