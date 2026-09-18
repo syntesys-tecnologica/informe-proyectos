@@ -919,6 +919,12 @@ async function generateReport(){
     const totalH = cells.reduce((sum, c) => sum + c.titleH + c.h, 0);
     let top = Math.max(availTop, availTop + ((availBottom - availTop) - totalH) / 2);
 
+    if (pair.length === 1) {
+    2
+    top = availTop + 10;
+    3
+    }
+    
     cells.forEach(cell => {
       doc.setTextColor(20, 20, 20);
       doc.setFont('helvetica', 'bold');
