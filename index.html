@@ -988,11 +988,7 @@ async function generateReport(){
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.text(cell.titleLines, cellCenterX, rowTop + 9, { align: 'center' });
-        let imgY = rowTop + titleH;
-
-if (rows.length === 1) {
-    imgY -= 8;
-}
+        const imgY = rowTop + titleH;
         doc.addImage(cell.entry.s.dataUrl, 'JPEG', cellX, imgY, cell.w, cell.h);
       });
       rowTop += titleH + imgH + rowGap;
