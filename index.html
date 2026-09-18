@@ -913,6 +913,11 @@ async function generateReport(){
       return { entry, titleLines, titleH, w, h };
     });
 
+    if (cells.length === 2) {
+cells[1].w = cells[0].w;
+cells[1].h = cells[0].h;
+}
+
     // se apilan una debajo de otra sin espacio entre ellas; el bloque
     // completo (título+imagen, título+imagen) se centra verticalmente
     // en la hoja para que quede uniforme, sin importar la proporción de cada foto.
