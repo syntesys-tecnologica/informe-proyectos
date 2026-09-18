@@ -942,7 +942,7 @@ async function generateReport(){
     const cells = chunk.map(entry => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      const titleLines = doc.splitTextToSize(entry.item.s, colW - 6);
+      const titleLines = doc.splitTextToSize(entry.item.s, colW);
       const titleH = titleLines.length * 12 + 8;
       const props = doc.getImageProperties(entry.s.dataUrl);
       const w = colW;
