@@ -974,8 +974,8 @@ async function generateReport(){
     availTop + ((availBottom - availTop) - totalH) / 2
     );
 
-if (chunk.length < 6) {
-    gridTop = availTop;
+    if (rows.length === 1) {
+    gridTop = availTop + 40;
     }
 
     doc.addPage();
