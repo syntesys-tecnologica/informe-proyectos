@@ -968,7 +968,8 @@ async function generateReport(){
     const totalH = rowLayout.reduce(
       (sum, r, i) => sum + r.titleH + r.imgH + (i > 0 ? rowGap : 0), 0
     );
-    const gridTop = Math.max(availTop, availTop + ((availBottom - availTop) - totalH) / 2);
+    let gridTop = Math.max(availTop,availTop + ((availBottom - availTop) - totalH) / 2);
+if (chunk.length < 6) {gridTop = availTop;}
 
     doc.addPage();
     let rowTop = gridTop;
