@@ -975,7 +975,7 @@ async function generateReport(){
     );
 
     if (rows.length === 1) {
-    gridTop = availTop + 40;
+    gridTop = availTop;
     }
 
     doc.addPage();
@@ -988,7 +988,11 @@ async function generateReport(){
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.text(cell.titleLines, cellCenterX, rowTop + 9, { align: 'center' });
-        const imgY = rowTop + titleH;
+        let imgY = rowTop + titleH;
+
+if (rows.length === 1) {
+    imgY -= 8;
+}
         doc.addImage(cell.entry.s.dataUrl, 'JPEG', cellX, imgY, cell.w, cell.h);
       });
       rowTop += titleH + imgH + rowGap;
