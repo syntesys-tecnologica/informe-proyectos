@@ -126,7 +126,7 @@
       <label>Ciudad</label>
       <input type="text" id="fCiudad" placeholder="Ej. Envigado, Antioquia">
     </div>
-    <div class="setup-field">
+    <div class="setup-field hidden">
       <label>Técnico responsable</label>
       <input type="text" id="fTecnico" placeholder="Tu nombre">
     </div>
@@ -152,6 +152,7 @@
     <div class="tabbar">
       <div class="tab active" id="tabCapture">Capturar</div>
       <div class="tab" id="tabList">Ver lista</div>
+      <div class="tab" id="btnEditData">✎ Editar datos</div>
     </div>
 
     <div id="captureView">
@@ -486,6 +487,15 @@ function goto(screenId){
 }
 
 $('fFecha').value = new Date().toISOString().slice(0,10);
+
+function llenarCamposDesdeVisita(){
+  $('fTienda').value = (!visita.tienda || visita.tienda === '(sin nombre)') ? '' : visita.tienda;
+  $('fCodigo').value = (!visita.codigo || visita.codigo === '(sin código)') ? '' : visita.codigo;
+  $('fCiudad').value = (!visita.ciudad || visita.ciudad === '(sin ciudad)') ? '' : visita.ciudad;
+  $('fTecnico').value = (!visita.tecnico || visita.tecnico === '(sin nombre)') ? '' : visita.tecnico;
+  $('fFecha').value = visita.fecha || new Date().toISOString().slice(0,10);
+}
+
 $('btnStart').addEventListener('click', () => {
   visita = {
     tienda: $('fTienda').value.trim() || '(sin nombre)',
@@ -497,6 +507,11 @@ $('btnStart').addEventListener('click', () => {
   goto('screen-capture');
   renderCurrent();
   renderList();
+});
+
+$('btnEditData').addEventListener('click', () => {
+  llenarCamposDesdeVisita();
+  goto('screen-setup');
 });
 
 // ---------- Guardar / cargar avance (respaldo para editar después) ----------
@@ -538,11 +553,7 @@ $('fileInputAvance').addEventListener('change', async (e) => {
     for (let i = 0; i < CHECKLIST.length; i++){
       if (savedState[i]) state[i] = savedState[i];
     }
-    $('fTienda').value = visita.tienda === '(sin nombre)' ? '' : (visita.tienda || '');
-    $('fCodigo').value = visita.codigo === '(sin código)' ? '' : (visita.codigo || '');
-    $('fCiudad').value = visita.ciudad === '(sin ciudad)' ? '' : (visita.ciudad || '');
-    $('fTecnico').value = visita.tecnico === '(sin nombre)' ? '' : (visita.tecnico || '');
-    $('fFecha').value = visita.fecha || new Date().toISOString().slice(0,10);
+    llenarCamposDesdeVisita();
 
     goto('screen-capture');
     const firstPending = state.findIndex(s => !s.dataUrl && !s.skipped);
