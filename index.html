@@ -994,11 +994,11 @@ async function generateReport(){
   const taken = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.dataUrl);
   const skipped = CHECKLIST.map((item, i) => ({ item, s: state[i] })).filter(x => x.s.skipped);
 
-  // ---------- Distribución de fotos: 8 por hoja (cuadrícula compacta 2x4) para
+  // ---------- Distribución de fotos: 6 por hoja (cuadrícula 2x3) para
   //            las secciones repetitivas, 2 por hoja para el resto. Cada categoría
   //            (Calendario, Cámaras, Enfoques, Análisis Dinámico, Zonas, Detector de humo) forma sus
   //            propios grupos — nunca se mezclan dos categorías en la misma hoja,
-  //            aunque la última quede con menos de 8 fotos. ----------
+  //            aunque la última quede con menos de 6 fotos. ----------
 
   function categoriaPagina(texto){
     const t = texto.toUpperCase();
@@ -1015,6 +1015,10 @@ async function generateReport(){
     if (/^CÁMARA \d+$/.test(t)) return 'camara';
     if (/^ZONA \d+$/.test(t)) return 'zona';
     if (/^DETECTOR HUMO \d+$/.test(t)) return 'detector';
+    // 2 imágenes por hoja SIEMPRE emparejadas entre sí (aunque falte alguna foto
+    // anterior en la lista, estas parejas no se desplazan ni se mezclan con otras casillas)
+    if (t === 'CONFIGURACIÓN DISCOS DUROS' || t === 'CONFIGURACIÓN MODO DE ALMACENAMIENTO') return 'almacenamiento';
+    if (/^CONFIGURACIÓN DE NOMBRES CÁMARAS\/DIR IP( \(2\))?$/.test(t)) return 'nombres';
     return null; // 2 imágenes por hoja (resto de casillas)
   }
 
@@ -1047,10 +1051,27 @@ async function generateReport(){
     doc.rect(x, y, w, h, 'S'); // marco sutil, acabado editorial
   }
 
+  // dibuja una foto ocupando TODO un recuadro de tamaño FIJO (fx, fy, fw, fh).
+  // La foto se ajusta (se estira) al recuadro completo, sin recortar nada y sin
+  // franjas vacías, así todas las fotos quedan exactamente del mismo tamaño en
+  // todas las hojas, sin importar su proporción original.
+  function dibujarImagenEnMarco(dataUrl, fx, fy, fw, fh, lineW){
+    doc.addImage(dataUrl, 'JPEG', fx, fy, fw, fh);
+    doc.setDrawColor(...BRAND_LINE);
+    doc.setLineWidth(lineW);
+    doc.rect(fx, fy, fw, fh, 'S'); // marco sutil, siempre del mismo tamaño
+  }
+
+  // Páginas de 2 imágenes: TODAS las fotos usan exactamente el mismo recuadro
+  // (mismo ancho y mismo alto) en todas las hojas de este tipo, sin importar la
+  // proporción de la foto original. El recuadro es de proporción 4:3, que es la de
+  // las fotos horizontales del celular (lo que ocupan, p. ej., las casillas
+  // "CONFIGURACIÓN DE NOMBRES CÁMARAS/DIR IP"). Cada foto llena todo el recuadro.
   function dibujarParPagina(pair){
-    // altura máxima de seguridad por imagen (evita que una imagen invada el
-    // espacio de la otra si viene con una proporción muy alargada)
     const slotHMax = (availBottom - availTop) / 2;
+    const TITLE_H = 1 * 15 + 6 + 12;              // alto del bloque de título (títulos de 1 línea) + línea de acento
+    const FRAME_H = slotHMax - TITLE_H;           // alto fijo del recuadro
+    const FRAME_W = Math.min(imgMaxW, FRAME_H * 4 / 3); // ancho fijo del recuadro (4:3)
 
     doc.addPage();
     dibujarEncabezadoPagina();
@@ -1059,23 +1080,13 @@ async function generateReport(){
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       const titleLines = doc.splitTextToSize(entry.item.s, imgMaxW);
-      const titleTextH = titleLines.length * 15 + 6;
-      const titleH = titleTextH + 12; // + espacio para la línea de acento de marca
-      const props = doc.getImageProperties(entry.s.dataUrl);
-      let w = imgMaxW, h = (props.height / props.width) * w;
-      const imgMaxH = slotHMax - titleH;
-      if (h > imgMaxH){ h = imgMaxH; w = (props.width / props.height) * h; }
-      return { entry, titleLines, titleTextH, titleH, w, h };
+      const titleH = Math.max(TITLE_H, titleLines.length * 15 + 6 + 12);
+      return { entry, titleLines, titleH };
     });
-    if (cells.length === 2) {
-      cells[1].w = cells[0].w;
-      cells[1].h = cells[0].h;
-    }
 
     // se apilan una debajo de otra sin espacio entre ellas; el bloque
-    // completo (título+imagen, título+imagen) se centra verticalmente
-    // en la hoja para que quede uniforme, sin importar la proporción de cada foto.
-    const totalH = cells.reduce((sum, c) => sum + c.titleH + c.h, 0);
+    // completo (título+recuadro, título+recuadro) se centra verticalmente en la hoja
+    const totalH = cells.reduce((sum, c) => sum + c.titleH + FRAME_H, 0);
     let top = Math.max(availTop, availTop + ((availBottom - availTop) - totalH) / 2);
 
     if (pair.length === 1) {
@@ -1088,38 +1099,41 @@ async function generateReport(){
       doc.setFontSize(12);
       doc.text(cell.titleLines, centerX, top + 18, { align: 'center' });
 
-      const imgY = top + cell.titleH;
-      const imgX = centerX - cell.w / 2;
-      doc.addImage(cell.entry.s.dataUrl, 'JPEG', imgX, imgY, cell.w, cell.h);
+      const frameX = centerX - FRAME_W / 2;
+      const frameY = top + cell.titleH;
 
-      doc.setDrawColor(...BRAND_LINE);
-      doc.setLineWidth(0.75);
-      doc.rect(imgX, imgY, cell.w, cell.h, 'S'); // marco sutil
+      dibujarImagenEnMarco(cell.entry.s.dataUrl, frameX, frameY, FRAME_W, FRAME_H, 0.75);
 
-      top += cell.titleH + cell.h; // sin espacio: la siguiente casilla arranca justo después
+      top += cell.titleH + FRAME_H;
     });
   }
 
-  // cuadrícula compacta: 2 columnas x 4 filas (8 fotos). El alto de cada fila
-  // se calcula SIEMPRE como si la hoja tuviera las 8 fotos completas (4 filas
-  // fijas), repartiendo entre esas 4 filas todo el espacio disponible de la
-  // página. Así, si en la última hoja de una categoría solo quedan 1 o 2 fotos,
-  // estas se dibujan arriba con el mismo tamaño/posición que tendrían en una
-  // hoja llena, y el resto de la página queda simplemente en blanco (no se
-  // estiran para "rellenar" la hoja).
+  // cuadrícula: 2 columnas x 3 filas (6 fotos por hoja). Todas las fotos usan un
+  // recuadro de tamaño FIJO en proporción 4:3 (cada foto lo llena por completo) que
+  // ocupa todo el ancho de su columna. Las 3 filas se reparten de forma uniforme
+  // por TODO el alto útil de la hoja: el primer título arranca en el borde superior
+  // del área de contenido y la última foto termina justo en el borde inferior; el
+  // espacio sobrante queda repartido en partes iguales entre filas. Las medidas se
+  // calculan SIEMPRE como si la hoja tuviera las 6 fotos completas, así que si en
+  // la última hoja de una categoría solo quedan 1 a 5 fotos, estas se dibujan arriba
+  // con el mismo tamaño y posición que tendrían en una hoja llena, y el resto de la
+  // página queda en blanco (no se estiran para "rellenar" la hoja).
   //
-  // Título pegado a su imagen: el título se ancla SIEMPRE al borde superior de
-  // la imagen que le corresponde, con un espacio pequeño (TITLE_IMG_GAP). La
-  // separación entre una imagen y el título de la fila siguiente (rowGap) es
-  // bastante mayor, así se identifica de un vistazo a qué imagen pertenece cada título.
+  // Título pegado a su imagen: el título se ancla SIEMPRE al borde superior de la
+  // imagen que le corresponde, con un espacio pequeño (TITLE_IMG_GAP). La separación
+  // entre una imagen y el título de la fila siguiente es bastante mayor, así se
+  // identifica de un vistazo a qué imagen pertenece cada título.
+  const FOTOS_POR_HOJA_CUADRICULA = 6;
+
   function dibujarCuadriculaPagina(chunk){
     const cols = 2;
-    const colGap = 20, rowGap = 16;   // espacio entre columnas / entre una imagen y el título de la fila siguiente
+    const colGap = 16;                // espacio entre las dos columnas
+    const MIN_ROW_GAP = 12;           // separación mínima entre filas
     const TITLE_LINE_H = 10;          // interlineado del título (fuente de 8 pt)
     const TITLE_IMG_GAP = 3;          // espacio pequeño entre el título y su imagen
     const gridW = pageW - margin * 2;
     const colW = (gridW - colGap) / cols;
-    const rowsFull = Math.ceil(8 / cols); // = 4, filas de una hoja completa
+    const rowsFull = Math.ceil(FOTOS_POR_HOJA_CUADRICULA / cols); // = 3, filas de una hoja completa
 
     const rows = [];
     for (let i = 0; i < chunk.length; i += cols){
@@ -1137,14 +1151,19 @@ async function generateReport(){
     );
     // altura de título "estándar" (todas estas casillas llevan títulos de una
     // sola línea), usada para calcular el tamaño de fila de una hoja completa
-    const titleHFull = rowTitleH.length ? Math.max(...rowTitleH) : (TITLE_LINE_H + TITLE_IMG_GAP);
+    const titleHFull = rowTitleH.length
+      ? Math.max(TITLE_LINE_H + TITLE_IMG_GAP, ...rowTitleH)
+      : (TITLE_LINE_H + TITLE_IMG_GAP);
 
-    // alto disponible para las imágenes de UNA HOJA COMPLETA (8 fotos / 4 filas),
-    // sin importar cuántas fotos traiga realmente este chunk
+    // recuadro fijo 4:3: ocupa todo el ancho de la columna (si no cupiera en alto, se
+    // reduce manteniendo la proporción)
     const availableH = availBottom - availTop;
-    const totalTitleHFull = titleHFull * rowsFull;
-    const totalGapsFull = (rowsFull - 1) * rowGap;
-    const imgHPerRow = Math.max(30, (availableH - totalTitleHFull - totalGapsFull) / rowsFull);
+    const maxFrameH = (availableH - titleHFull * rowsFull - (rowsFull - 1) * MIN_ROW_GAP) / rowsFull;
+    const FRAME_H = Math.min(colW * 3 / 4, maxFrameH);
+    const FRAME_W = FRAME_H * 4 / 3;
+    // el espacio vertical sobrante se reparte por igual entre las filas: así el bloque
+    // completo ocupa toda la hoja, de arriba a abajo
+    const rowGap = (availableH - rowsFull * (titleHFull + FRAME_H)) / (rowsFull - 1);
 
     doc.addPage();
     dibujarEncabezadoPagina();
@@ -1156,13 +1175,9 @@ async function generateReport(){
         const cellX = margin + cIdx * (colW + colGap);
         const cellCenterX = cellX + colW / 2;
 
-        const props = doc.getImageProperties(entry.s.dataUrl);
-        let w = colW, h = (props.height / props.width) * w;
-        if (h > imgHPerRow){ h = imgHPerRow; w = (props.width / props.height) * h; }
-
-        // imagen centrada horizontalmente en su celda y alineada al borde
-        // superior de la fila (justo debajo de su título)
-        const imgX = cellX + (colW - w) / 2;
+        // recuadro centrado en su columna y alineado al borde superior de la fila
+        // (justo debajo de su título)
+        const imgX = cellX + (colW - FRAME_W) / 2;
         const imgY = rowTop + titleHFull;
 
         // título pegado a la imagen: la última línea queda a TITLE_IMG_GAP del borde superior
@@ -1173,13 +1188,9 @@ async function generateReport(){
         doc.setFontSize(8);
         doc.text(lines, cellCenterX, firstBaseline, { align: 'center', lineHeightFactor: TITLE_LINE_H / 8 });
 
-        doc.addImage(entry.s.dataUrl, 'JPEG', imgX, imgY, w, h);
-
-        doc.setDrawColor(...BRAND_LINE);
-        doc.setLineWidth(0.6);
-        doc.rect(imgX, imgY, w, h, 'S'); // marco sutil
+        dibujarImagenEnMarco(entry.s.dataUrl, imgX, imgY, FRAME_W, FRAME_H, 0.6);
       });
-      rowTop += titleHFull + imgHPerRow + rowGap; // mismo paso de fila que en una hoja completa
+      rowTop += titleHFull + FRAME_H + rowGap; // mismo paso de fila que en una hoja llena
     });
   }
 
@@ -1198,8 +1209,8 @@ async function generateReport(){
 
   function chunkSizeDeCategoria(cat){
     if (cat === 'individual') return 1; // zonificaciones y actas de entrega
-    if (cat === null) return 2;         // resto de casillas
-    return 8;                           // calendarios, cámaras, enfoques, análisis, zonas, detectores
+    if (cat === null || cat === 'almacenamiento' || cat === 'nombres') return 2; // resto de casillas y parejas fijas
+    return FOTOS_POR_HOJA_CUADRICULA;   // calendarios, cámaras, enfoques, análisis, zonas, detectores (6 por hoja, 2x3)
   }
 
   let procesadas = 0;
@@ -1213,7 +1224,7 @@ async function generateReport(){
 
       if (run.cat === 'individual'){
         dibujarUnaPagina(chunk[0]);
-      } else if (run.cat === null){
+      } else if (run.cat === null || run.cat === 'almacenamiento' || run.cat === 'nombres'){
         dibujarParPagina(chunk);
       } else {
         dibujarCuadriculaPagina(chunk);
