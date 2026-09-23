@@ -190,7 +190,7 @@
     <div id="listView" class="hidden">
       <div class="card" style="padding:6px 14px;max-height:60vh;overflow-y:auto" id="listContainer"></div>
       <button class="btn btn-primary" id="btnGenerateFromList">Generar informe</button>
-      <button class="btn btn-secondary" id="btnDownloadAll" style="margin-top:10px">Descargar todas las fotos</button>
+      <button class="btn btn-secondary" id="btnDownloadAll" style="margin-top:10px">Descargar todas las imágenes</button>
       <button class="btn btn-secondary" id="btnGuardarAvance" style="margin-top:10px">Guardar avance (para editar después)</button>
     </div>
   </div>
@@ -214,6 +214,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const CHECKLIST = [
   { "s": "RACK SISTEMA CCTV IP", "t": "RACK_SISTEMA_CCTV_IP" },
@@ -872,28 +873,49 @@ async function downloadAllPhotos(){
   const btn = $('btnDownloadAll');
   const originalText = btn.textContent;
   btn.disabled = true;
+  btn.textContent = 'Preparando ZIP…';
 
-  for (let idx = 0; idx < items.length; idx++){
-    const { item, s } = items[idx];
-    btn.textContent = `Descargando ${idx + 1} de ${items.length}…`;
-    const filename = `${item.t || 'foto_' + (idx + 1)}.jpg`;
-    try {
+  try {
+    const zip = new JSZip();
+    const usedNames = new Set();
+
+    for (let idx = 0; idx < items.length; idx++){
+      const { item, s } = items[idx];
+      btn.textContent = `Agregando ${idx + 1} de ${items.length}…`;
+
+      // Evita nombres repetidos dentro del zip por si dos casillas
+      // llegaran a compartir el mismo "t".
+      let baseName = item.t || `foto_${idx + 1}`;
+      let filename = `${baseName}.jpg`;
+      let suffix = 2;
+      while (usedNames.has(filename)){
+        filename = `${baseName}_${suffix}.jpg`;
+        suffix++;
+      }
+      usedNames.add(filename);
+
       const response = await fetch(s.dataUrl);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err){
-      console.error('No se pudo descargar', filename, err);
+      zip.file(filename, blob);
     }
-    // Pequeña pausa entre descargas: los navegadores pueden bloquear varias
-    // descargas automáticas seguidas si se disparan todas en el mismo instante.
-    await new Promise(r => setTimeout(r, 300));
+
+    btn.textContent = 'Comprimiendo…';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+    const safeName = (visita.tienda || 'fotos').replace(/[^a-zA-Z0-9]+/g, '_');
+    const zipFilename = `Fotos_${safeName}_${visita.fecha || ''}.zip`;
+
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = zipFilename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err){
+    console.error('No se pudo generar el ZIP con las fotos', err);
+    alert('Ocurrió un problema generando el archivo ZIP. Intenta de nuevo.');
   }
 
   btn.textContent = originalText;
