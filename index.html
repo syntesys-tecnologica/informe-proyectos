@@ -519,6 +519,64 @@ const CHECKLIST = [
   { "s": "ACTA DE ENTREGA (3)", "t": "ACTA_DE_ENTREGA_3" },
 ];
 
+// Orden EXACTO del checklist tal como estaba antes de insertar
+// "PLANO FINAL EQUIPOS CCTV BODEGA" y "PLANO FINAL EQUIPOS CCTV PARQUEADERO".
+// Sirve únicamente para poder leer correctamente los avances (.json) que se
+// guardaron con versiones anteriores de este archivo, donde el emparejamiento
+// se hacía por posición y no por el identificador "t" de cada casilla.
+const LEGACY_CHECKLIST_TOKENS = [
+  "RACK_SISTEMA_CCTV_IP", "PLANO_FINAL_DE_EQUIPOS_CCTV_TIENDA", "VERSIÓN_DE_FIRMWARE_NVR", "CONFIGURACION_DE_RESOLUCION", "CONFIGURACION_DE_RED_LAN_1", "CONFIGURACION_DE_USUARIOS",
+  "CONFIGURACION_DE_HORA_Y_REGION", "CONFIGURACION__DE_NTP", "OPCION_DE_ACTUALIZACION_DE_FIRMWARE_DESACTIVADO", "CONFIGURACION_DE_PUERTOS", "CONFIGURACION_DISCOS_DUROS", "CONFIGURACION_MODO_DE_ALMACENAMIENTO",
+  "CONFIGURACION_DE_NOMBRES_CAMARAS_DIR_IP", "CONFIGURACION_DE_NOMBRES_CAMARAS_DIR_IP_2", "PARAMETROS_DE_STREAM_PPAL_CAMARAS", "PARAMETROS_DE_SUB_STREAM_CAMARAS", "PARAMETROS_DE_VIDEO_CAMARA_FR", "PARAMETROS_DE_VIDEO_CAMARA_GERENCIA",
+  "CONFIGURACION_AVANZADA_DE_AUDIO_CAMARA_GERENCIA", "C1", "C2", "C3", "C4", "C5",
+  "C6", "C7", "C8", "C9", "C10", "C11",
+  "C12", "C13", "C14", "C15", "C16", "C17",
+  "C18", "C19", "C20", "C21", "C22", "C23",
+  "C24", "C25", "C26", "C27", "C28", "C29",
+  "C30", "CAMARA_1_VISTA", "CAMARA_2_VISTA", "CAMARA_3_VISTA", "CAMARA_4_VISTA", "CAMARA_5_VISTA",
+  "CAMARA_6_VISTA", "CAMARA_7_VISTA", "CAMARA_8_VISTA", "CAMARA_9_VISTA", "CAMARA_10_VISTA", "CAMARA_11_VISTA",
+  "CAMARA_12_VISTA", "CAMARA_13_VISTA", "CAMARA_14_VISTA", "CAMARA_15_VISTA", "CAMARA_16_VISTA", "CAMARA_17_VISTA",
+  "CAMARA_18_VISTA", "CAMARA_19_VISTA", "CAMARA_20_VISTA", "CAMARA_21_VISTA", "CAMARA_22_VISTA", "CAMARA_23_VISTA",
+  "CAMARA_24_VISTA", "CAMARA_25_VISTA", "CAMARA_26_VISTA", "CAMARA_27_VISTA", "CAMARA_28_VISTA", "CAMARA_29_VISTA",
+  "CAMARA_30_VISTA", "CAMARA_1_ENFOQUE", "CAMARA_2_ENFOQUE", "CAMARA_3_ENFOQUE", "CAMARA_4_ENFOQUE", "CAMARA_5_ENFOQUE",
+  "CAMARA_6_ENFOQUE", "CAMARA_7_ENFOQUE", "CAMARA_8_ENFOQUE", "CAMARA_9_ENFOQUE", "CAMARA_10_ENFOQUE", "CAMARA_11_ENFOQUE",
+  "CAMARA_12_ENFOQUE", "CAMARA_13_ENFOQUE", "CAMARA_14_ENFOQUE", "CAMARA_15_ENFOQUE", "CAMARA_16_ENFOQUE", "CAMARA_17_ENFOQUE",
+  "CAMARA_18_ENFOQUE", "CAMARA_19_ENFOQUE", "CAMARA_20_ENFOQUE", "CAMARA_21_ENFOQUE", "CAMARA_22_ENFOQUE", "CAMARA_23_ENFOQUE",
+  "CAMARA_24_ENFOQUE", "CAMARA_25_ENFOQUE", "CAMARA_26_ENFOQUE", "CAMARA_27_ENFOQUE", "CAMARA_28_ENFOQUE", "CAMARA_29_ENFOQUE",
+  "CAMARA_30_ENFOQUE", "VISUAL_DE_TODAS_LAS_CAMARAS", "VALIDACION_DE_GRABACION", "VALIDACION_DE_GRABACION_2", "CAMARA_1", "CAMARA_2",
+  "CAMARA_3", "CAMARA_4", "CAMARA_5", "CAMARA_6", "CAMARA_7", "CAMARA_8",
+  "CAMARA_9", "CAMARA_10", "CAMARA_11", "CAMARA_12", "CAMARA_13", "CAMARA_14",
+  "CAMARA_15", "CAMARA_16", "CAMARA_17", "CAMARA_18", "CAMARA_19", "CAMARA_20",
+  "CAMARA_21", "CAMARA_22", "CAMARA_23", "CAMARA_24", "CAMARA_25", "CAMARA_26",
+  "CAMARA_27", "CAMARA_28", "CAMARA_29", "CAMARA_30", "PLANO_FINAL_ALARMA_INTRUSION_TIENDA", "PLANO_FINAL_ALARMA_INTRUSION_BODEGA",
+  "PLANO_FINAL_ALARMA_INTRUSION_PARQUEADERO", "ZONIFICACION_ALARMA_DE_NTRUSION", "TECLADO_ALARMA_DE_INTRUSION", "UBICACION_GABINETES_ALARMA_DE_INTRUSION", "GABINETE_TARJETA PRINCIPAL_ALARMA_DE_INTRUSION", "GABINETE_EXPANSORAS_Y_FUENTE_ALARMA_DE_INTRUSION",
+  "ZONA_1", "ZONA_2", "ZONA_3", "ZONA_4", "ZONA_5", "ZONA_6",
+  "ZONA_7", "ZONA_8", "ZONA_9", "ZONA_10", "ZONA_11", "ZONA_12",
+  "ZONA_13", "ZONA_14", "ZONA_15", "ZONA_16", "ZONA_17", "ZONA_18",
+  "ZONA_19", "ZONA_20", "ZONA_21", "ZONA_22", "ZONA_23", "ZONA_24",
+  "ZONA_25", "ZONA_26", "ZONA_27", "ZONA_28", "ZONA_29", "ZONA_30",
+  "ZONA_31", "ZONA_32", "ZONA_33", "ZONA_34", "ZONA_35", "ZONA_36",
+  "ZONA_37", "ZONA_38", "ZONA_39", "ZONA_40", "ZONA_41", "ZONA_42",
+  "ZONA_43", "ZONA_44", "ZONA_45", "ZONA_46", "ZONA_47", "ZONA_48",
+  "ZONA_49", "ZONA_50", "ZONA_51", "ZONA_52", "ZONA_53", "ZONA_54",
+  "ZONA_55", "ZONA_56", "ZONA_57", "ZONA_58", "ZONA_59", "ZONA_60",
+  "ZONA_61", "ZONA_62", "ZONA_63", "ZONA_64", "ZONA_65", "ZONA_66",
+  "ZONA_67", "ZONA_68", "ZONA_69", "ZONA_70", "ZONA_71", "ZONA_72",
+  "ZONA_73", "ZONA_74", "ZONA_75", "ZONA_76", "ZONA_77", "ZONA_78",
+  "ZONA_79", "ZONA_80", "ZONA_81", "ZONA_82", "ZONA_83", "ZONA_84",
+  "ZONA_85", "ZONA_86", "ZONA_87", "ZONA_88", "ZONA_89", "ZONA_90",
+  "ZONA_91", "ZONA_92", "ZONA_93", "ZONA_94", "ZONA_95", "ZONA_96",
+  "ZONA_97", "ZONA_98", "ZONA_99", "ZONA_100", "PLANO_FINAL_EQUIPOS_DETECCION_INCENDIO_TIENDA", "PLANO_FINAL_EQUIPOS_DETECCION_INCENDIO_BODEGA",
+  "PLANO_FINAL_DETECCION_INCENDIO_PARQUEADERO", "ZONIFICACION_SISTEMA_DETECCION_DE_INCENDIO", "PANEL_DE_INCENDIO_CERTIFICADO", "TECLADO_ANUNCIADOR", "DETECTOR_HUMO_1", "DETECTOR_HUMO_2",
+  "DETECTOR_HUMO_3", "DETECTOR_HUMO_4", "DETECTOR_HUMO_5", "DETECTOR_HUMO_6", "DETECTOR_HUMO_7", "DETECTOR_HUMO_8",
+  "DETECTOR_HUMO_9", "DETECTOR_HUMO_10", "DETECTOR_HUMO_11", "DETECTOR_HUMO_12", "DETECTOR_HUMO_13", "DETECTOR_HUMO_14",
+  "DETECTOR_HUMO_15", "DETECTOR_HUMO_16", "DETECTOR_HUMO_17", "DETECTOR_HUMO_18", "DETECTOR_HUMO_19", "DETECTOR_HUMO_20",
+  "DETECTOR_HUMO_21", "DETECTOR_HUMO_22", "DETECTOR_HUMO_23", "DETECTOR_HUMO_24", "DETECTOR_HUMO_25", "DETECTOR_HUMO_26",
+  "DETECTOR_HUMO_27", "DETECTOR_HUMO_28", "DETECTOR_HUMO_29", "DETECTOR_HUMO_30", "DETECTOR_HUMO_31", "DETECTOR_HUMO_32",
+  "DETECTOR_HUMO_33", "DETECTOR_HUMO_34", "DETECTOR_HUMO_35", "DETECTOR_HUMO_36", "DETECTOR_HUMO_37", "DETECTOR_HUMO_38",
+  "DETECTOR_HUMO_39", "DETECTOR_HUMO_40", "ACTA_DE_ENTREGA", "ACTA_DE_ENTREGA_2", "ACTA_DE_ENTREGA_3",
+];
+
 const state = CHECKLIST.map(() => ({ dataUrl: null, skipped: false }));
 let current = 0;
 let visita = {};
@@ -625,13 +683,26 @@ $('fileInputAvance').addEventListener('change', async (e) => {
         if (saved) state[i] = { dataUrl: saved.dataUrl || null, skipped: !!saved.skipped };
       });
     } else if (backup.state){
-      // Formato antiguo (por posición), para compatibilidad con avances
-      // guardados antes de este cambio. Si ya agregaste casillas nuevas,
-      // revisa la lista con cuidado por si algo quedó descuadrado.
+      // Formato antiguo (por posición). Para no desalinear las fotos si el
+      // checklist actual ya tiene casillas nuevas insertadas, primero se
+      // traduce cada posición del backup a su identificador "t" usando el
+      // orden ORIGINAL del checklist (LEGACY_CHECKLIST_TOKENS), y luego se
+      // busca ese "t" en el checklist actual, sin importar la posición.
       const savedState = backup.state;
-      for (let i = 0; i < CHECKLIST.length; i++){
-        if (savedState[i]) state[i] = savedState[i];
-      }
+      savedState.forEach((saved, i) => {
+        if (!saved) return;
+        const legacyToken = LEGACY_CHECKLIST_TOKENS[i];
+        const targetIndex = legacyToken
+          ? CHECKLIST.findIndex(item => item.t === legacyToken)
+          : -1;
+        if (targetIndex >= 0){
+          state[targetIndex] = { dataUrl: saved.dataUrl || null, skipped: !!saved.skipped };
+        } else if (i < CHECKLIST.length){
+          // Respaldo por si el token no se reconoce (checklist editado
+          // manualmente de otra forma): se coloca por posición como antes.
+          state[i] = saved;
+        }
+      });
     }
 
     llenarCamposDesdeVisita();
