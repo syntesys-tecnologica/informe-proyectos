@@ -884,12 +884,15 @@ async function downloadAllPhotos(){
       btn.textContent = `Agregando ${idx + 1} de ${items.length}…`;
 
       // Evita nombres repetidos dentro del zip por si dos casillas
-      // llegaran a compartir el mismo "t".
-      let baseName = item.t || `foto_${idx + 1}`;
+      // llegaran a tener exactamente el mismo nombre.
+      // Se usa el nombre EXACTO de la casilla (item.s), tal como aparece en
+      // pantalla, solo reemplazando caracteres que no son válidos en nombres
+      // de archivo (/ \ : * ? " < > |).
+      let baseName = (item.s || `foto_${idx + 1}`).replace(/[\\/:*?"<>|]/g, '-').trim();
       let filename = `${baseName}.jpg`;
       let suffix = 2;
       while (usedNames.has(filename)){
-        filename = `${baseName}_${suffix}.jpg`;
+        filename = `${baseName} (${suffix}).jpg`;
         suffix++;
       }
       usedNames.add(filename);
